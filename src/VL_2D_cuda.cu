@@ -21,6 +21,7 @@
 #include"hllc_cuda.h"
 #include"h_correction_2D_cuda.h"
 #include"cooling_cuda.h"
+#include"conduction_cuda.h"
 #include"subgrid_routines_2D.h"
 
 
@@ -201,6 +202,19 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     // Apply cooling
     #ifdef COOLING_GPU
     cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);
+    CudaCheckError();
+    #endif
+
+
+    // Thermal Conduction
+    #ifdef CONDUCTION_GPU
+    Real kappa = 1.0;
+    conduction_kernel<<<dim2dGrid, dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, dx, dy, 1, gama, kappa);
+    cudaError_t err = cudaGetLastError();
+    gpuErrchk(err);
+    // if (err != cudaSuccess) 
+    //     printf("Error: %s\n", cudaGetErrorString(err));
+    // cudaDeviceSynchronize(); // REMOVE (Just for printing)
     CudaCheckError();
     #endif
 

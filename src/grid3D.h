@@ -454,6 +454,13 @@ class Grid3D
         as per the Noh problem in Liska, 2003, or in Stone, 2008. */
     void Noh_Boundary();
 
+    void Zero_Bound();
+
+    void Diff_Test();
+
+    /*! \fn void TI(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
+    *  \brief Thermal instability. */
+    void TI(Real rho, Real vx, Real vy, Real vz, Real P, Real A, Real n_TI);
 
 #ifdef   MPI_CHOLLA
     void Set_Boundaries_MPI(struct parameters P);

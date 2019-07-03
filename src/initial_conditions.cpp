@@ -56,6 +56,10 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
     Disk_3D(P);    
   } else if (strcmp(P.init, "Read_Grid")==0) {
     Read_Grid(P);    
+  } else if (strcmp(P.init, "Diff_Test")==0) {
+    Diff_Test();    
+  } else if (strcmp(P.init, "TI")==0) {
+    TI(P.rho, P.vx, P.vy, P.vz, P.P, P.A, P.my_reals[2]);
   } else {
     chprintf ("ABORT: %s: Unknown initial conditions!\n", P.init);
     chexit(-1);
@@ -121,7 +125,128 @@ void Grid3D::Set_Domain_Properties(struct parameters P)
 #endif /*MPI_CHOLLA*/
 }
 
+/*! \fn void Riemann(Real rho_l, Real v_l, Real P_l, Real rho_r, Real v_r, Real P_r, Real diaph)
+ *  \brief Initialize the grid with a Riemann problem. */
+void Grid3D::Diff_Test() {
+  int i, j, k, id;
+  int istart, jstart, kstart, iend, jend, kend;
+  Real x_pos, y_pos, z_pos;
+  Real v, P, cs;
 
+  istart = H.n_ghost;
+  iend   = H.nx-H.n_ghost;
+  if (H.ny > 1) {
+    jstart = H.n_ghost;
+    jend   = H.ny-H.n_ghost;
+  }
+  else {
+    jstart = 0;
+    jend   = H.ny;
+  }
+  if (H.nz > 1) {
+    kstart = H.n_ghost;
+    kend   = H.nz-H.n_ghost;
+  }
+  else {
+    kstart = 0;
+    kend   = H.nz;
+  }
+
+  // set initial values of conserved variables
+  for(k=kstart; k<kend; k++) {
+    for(j=jstart; j<jend; j++) {
+      for(i=istart; i<iend; i++) {
+
+        id = i + j*H.nx + k*H.nx*H.ny; // Cell index
+
+        // get cell-centered position
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+
+        if (x_pos < 0.01 || x_pos > 0.99 || y_pos < 0.01 || y_pos > 0.99) {
+          C.density[id]    = 5.0;
+          C.momentum_x[id] = 0.0;
+          C.momentum_y[id] = 0.0;
+          C.momentum_z[id] = 0.0;
+          C.Energy[id]     = 1.0/(gama-1.0) + 0.5*5.0*0.0;
+        } else {
+          C.density[id]    = 1.0;
+          C.momentum_x[id] = 0.0;
+          C.momentum_y[id] = 0.0;
+          C.momentum_z[id] = 0.0;
+          C.Energy[id]     = 1.0/(gama-1.0) + 0.5*5.0*0.0;
+        }
+      }
+    }
+  }
+}
+
+/*! \fn void TI(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
+ *  \brief Thermally unstable isobaric perturbation. */
+void Grid3D::TI(Real rho, Real vx, Real vy, Real vz, Real P, Real A, Real n_TI)
+{
+  int i, j, k, id;
+  int istart, jstart, kstart, iend, jend, kend;
+  Real x_pos, y_pos, z_pos;
+  Real xc,xf,yf,zf;
+
+  istart = H.n_ghost;
+  iend   = H.nx-H.n_ghost;
+  if (H.ny > 1) {
+    jstart = H.n_ghost;
+    jend   = H.ny-H.n_ghost;
+  }
+  else {
+    jstart = 0;
+    jend   = H.ny;
+  }
+  if (H.nz > 1) {
+    kstart = H.n_ghost;
+    kend   = H.nz-H.n_ghost;
+  }
+  else {
+    kstart = 0;
+    kend   = H.nz;
+  }
+
+  // determine the center of the domain
+  Get_Position(iend, jend, kend, &xf, &yf, &zf);
+  xc = 0.5*xf;
+
+  // define variables used
+  Real coskx,sinkx;
+  Real vel, pres;
+  Real k_par = 2.*PI/xf;
+  Real n_over_k = 1.0; //n_TI/k_par;
+  Real cs0 = sqrt(gama*P/rho);
+
+  // set initial values of conserved variables
+  for(k=kstart; k<kend; k++) {
+    for(j=jstart; j<jend; j++) {
+      for(i=istart; i<iend; i++) {
+
+        //get cell index
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+        // get cell-centered position
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+       
+        // perturbations 
+        coskx = cos(k_par*(x_pos-xc));
+        sinkx = sin(k_par*(x_pos-xc));
+
+        // initialize a 1D condensation mode
+        vel = vx - A*cs0*n_over_k*sinkx;
+        pres = P - A*n_over_k*n_over_k*coskx;
+        C.density[id]    = rho + A*coskx;
+        C.momentum_x[id] = rho*vel;
+        C.momentum_y[id] = rho*vy;
+        C.momentum_z[id] = rho*vz;
+        C.Energy[id]     = pres/(gama-1.0) + 0.5*C.momentum_x[id]*C.momentum_x[id]/C.density[id];
+      }
+    }
+  }
+
+}
 
 /*! \fn void Constant(Real rho, Real vx, Real vy, Real vz, Real P)
  *  \brief Constant gas properties. */

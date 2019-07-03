@@ -143,6 +143,9 @@ struct parameters
   Real ddelta_dt;
   int flag_delta;
 #endif /*ROTATED_PROJECTION*/
+    // added by TRW
+  int ncycle_out; // controls freq of output to screen
+  Real my_reals[99]; // an array to hold an additional 99 parameters
 };
 
 

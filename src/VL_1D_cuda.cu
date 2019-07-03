@@ -21,6 +21,7 @@
 #include"roe_cuda.h"
 #include"hllc_cuda.h"
 #include"cooling_cuda.h"
+#include"conduction_cuda.h"
 #include"error_handling.h"
 #include"io.h"
 
@@ -150,6 +151,14 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   // Apply cooling
   #ifdef COOLING_GPU
   cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama, dev_dt_array);
+  CudaCheckError();
+  #endif
+
+  // Thermal Conduction
+  #ifdef CONDUCTION_GPU
+  printf("Conduction Call.\n");
+  Real kappa = 1.0;
+  conduction_kernel<<<dimGrid, dimBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, dx, 1, 1, gama, kappa);
   CudaCheckError();
   #endif
 
