@@ -227,9 +227,10 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
     // Thermal Conduction
     #ifdef CONDUCTION_GPU
-    printf("Conduction Call");
     Real kappa = 1.0;
     conduction_kernel<<<dim1dGrid, dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, dx, dy, dz, gama, kappa);
+    cudaError_t err = cudaGetLastError();
+    gpuErrchk(err);
     CudaCheckError();
     #endif
  

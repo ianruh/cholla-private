@@ -212,9 +212,6 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     conduction_kernel<<<dim2dGrid, dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, dx, dy, 1, gama, kappa);
     cudaError_t err = cudaGetLastError();
     gpuErrchk(err);
-    // if (err != cudaSuccess) 
-    //     printf("Error: %s\n", cudaGetErrorString(err));
-    // cudaDeviceSynchronize(); // REMOVE (Just for printing)
     CudaCheckError();
     #endif
 

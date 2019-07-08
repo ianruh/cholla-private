@@ -22,11 +22,6 @@ outDir = directory + '/png/'
 minFileNum = 0
 maxFileNum = len(os.listdir(dataDir))
 
-f1 = h5py.File(dataDir + '0.h5.0', 'r')
-density1 = np.array(f1['density'])
-levels = MaxNLocator(nbins=15).tick_values(density1.min(), density1.max())
-cmap = plt.get_cmap('PiYG')
-norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
 
 print("Writing figures...")
 
@@ -41,9 +36,9 @@ def plot(number):
 	X = np.linspace(0, 1, nx)
 	Y = np.linspace(0, 1, ny)
 
-	# levels = MaxNLocator(nbins=15).tick_values(density.min(), density.max())
-	# cmap = plt.get_cmap('PiYG')
-	# norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
+	levels = MaxNLocator(nbins=15).tick_values(density.min(), density.max())
+	cmap = plt.get_cmap('PiYG')
+	norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
 
 	fig = plt.figure(figsize=(10,10))
 	ax1 = plt.axes([0.1,0.1,0.8,0.8])

@@ -162,19 +162,25 @@ void Grid3D::Diff_Test() {
         // get cell-centered position
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
 
-        if (x_pos < 0.01 || x_pos > 0.99 || y_pos < 0.01 || y_pos > 0.99) {
-          C.density[id]    = 5.0;
-          C.momentum_x[id] = 0.0;
-          C.momentum_y[id] = 0.0;
-          C.momentum_z[id] = 0.0;
-          C.Energy[id]     = 1.0/(gama-1.0) + 0.5*5.0*0.0;
-        } else {
-          C.density[id]    = 1.0;
-          C.momentum_x[id] = 0.0;
-          C.momentum_y[id] = 0.0;
-          C.momentum_z[id] = 0.0;
-          C.Energy[id]     = 1.0/(gama-1.0) + 0.5*5.0*0.0;
-        }
+        C.density[id]    = 1.0;
+        C.momentum_x[id] = 0.0;
+        C.momentum_y[id] = 0.0;
+        C.momentum_z[id] = 0.0;
+        C.Energy[id]     = 1.0/(gama-1.0) + 0.5*5.0*0.0;
+
+        // if (x_pos < 0.05 || x_pos > 0.95 || y_pos < 0.05 || y_pos > 0.95) {
+        //   C.density[id]    = 1.1;
+        //   C.momentum_x[id] = 0.0;
+        //   C.momentum_y[id] = 0.0;
+        //   C.momentum_z[id] = 0.0;
+        //   C.Energy[id]     = 1.0/(gama-1.0) + 0.5*5.0*0.0;
+        // } else {
+        //   C.density[id]    = 1.0;
+        //   C.momentum_x[id] = 0.0;
+        //   C.momentum_y[id] = 0.0;
+        //   C.momentum_z[id] = 0.0;
+        //   C.Energy[id]     = 1.0/(gama-1.0) + 0.5*5.0*0.0;
+        // }
       }
     }
   }

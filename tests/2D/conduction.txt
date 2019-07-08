@@ -1,5 +1,5 @@
 #
-# Parameter File for box filled with gas 
+# Parameter File for 2D conduction test
 #
 
 ################################################
@@ -33,14 +33,6 @@ zu_bcnd=zero
 outdir=./
 
 #################################################
-# density
-rho=1.0
-# velocity
-vx=0
-vy=0
-vz=0
-# pressure
-P=2.5
 # value of gamma
 gamma=1.666666666666667
 
