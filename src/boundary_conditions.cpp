@@ -473,11 +473,45 @@ void Grid3D::Zero_Bound()
       }
     }
   }
-  
+
+   // set exact boundaries on the -x face
+  for (k=0; k<H.nz; k++) {
+    for (j=0; j<H.ny; j++) {
+      for (i=0; i<H.n_ghost; i++) {
+
+        id = i + j*H.nx + k*H.nx*H.ny;
+        C.density[id]    = d;
+        C.momentum_x[id] = 0.0;
+        C.momentum_y[id] = 0.0;
+        C.momentum_z[id] = 0.0;
+        C.Energy[id]     = E;
+
+      }
+    }
+  }
+
   if(H.ny > 1) {
     // set exact boundaries on the +y face
     for (k=0; k<H.nz; k++) {
       for (j=H.ny-H.n_ghost; j<H.ny; j++) {
+        for (i=0; i<H.nx; i++) {
+
+          id = i + j*H.nx + k*H.nx*H.ny;
+          C.density[id]    = d;
+          C.momentum_x[id] = 0.0;
+          C.momentum_y[id] = 0.0;
+          C.momentum_z[id] = 0.0;
+          C.Energy[id]     = E;
+
+        }
+      }
+    }
+  }
+  
+  if(H.ny > 1) {
+    // set exact boundaries on the -y face
+    for (k=0; k<H.nz; k++) {
+      for (j=0; j<H.n_ghost; j++) {
         for (i=0; i<H.nx; i++) {
 
           id = i + j*H.nx + k*H.nx*H.ny;
@@ -510,40 +544,6 @@ void Grid3D::Zero_Bound()
       }
     }
 
-  }
-
-  // set exact boundaries on the -x face
-  for (k=0; k<H.nz; k++) {
-    for (j=0; j<H.ny; j++) {
-      for (i=0; i<H.n_ghost; i++) {
-
-        id = i + j*H.nx + k*H.nx*H.ny;
-        C.density[id]    = d;
-        C.momentum_x[id] = 0.0;
-        C.momentum_y[id] = 0.0;
-        C.momentum_z[id] = 0.0;
-        C.Energy[id]     = E;
-
-      }
-    }
-  }
-  
-  if(H.ny > 1) {
-    // set exact boundaries on the -y face
-    for (k=0; k<H.nz; k++) {
-      for (j=0; j<H.n_ghost; j++) {
-        for (i=0; i<H.nx; i++) {
-
-          id = i + j*H.nx + k*H.nx*H.ny;
-          C.density[id]    = d;
-          C.momentum_x[id] = 0.0;
-          C.momentum_y[id] = 0.0;
-          C.momentum_z[id] = 0.0;
-          C.Energy[id]     = E;
-
-        }
-      }
-    }
   }
 
   // set exact boundaries on the -z face

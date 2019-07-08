@@ -4,11 +4,11 @@
 
 ################################################
 # number of grid cells in the x dimension
-nx=100
+nx=25
 # number of grid cells in the y dimension
-ny=100
+ny=25
 # number of grid cells in the z dimension
-nz=100
+nz=25
 # final output time
 tout=100
 # time interval for output
@@ -23,12 +23,13 @@ xlen=1.0
 ylen=1.0
 zlen=1.0
 # type of boundary conditions
-xl_bcnd=zero
-xu_bcnd=zero
-yl_bcnd=zero
-yu_bcnd=zero
-zl_bcnd=zero
-zu_bcnd=zero
+xl_bcnd=4
+xu_bcnd=4
+yl_bcnd=4
+yu_bcnd=4
+zl_bcnd=4
+zu_bcnd=4
+custom_bcnd=zero
 # path to output directory
 outdir=./
 

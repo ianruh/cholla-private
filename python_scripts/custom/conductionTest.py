@@ -61,6 +61,7 @@ def plot(i):
 	
 
 	plt.legend(['1D', '2D', '3D'])
+	plt.ylim([0.87,1.1])
 	plt.title('Temperature in 1D, 2D, and 3D Simulations')
 	plt.savefig(outDir + str(i) + '.png', dpi=200)
 	plt.close()
