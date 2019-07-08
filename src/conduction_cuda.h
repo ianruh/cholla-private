@@ -14,5 +14,9 @@
         of each cell according to thermal conduction. */
 __global__ void conduction_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real dx, Real dy, Real dz, Real gamma, Real kappa);
 
+__device__ Real calculateTemp(Real *dev_conserved, int id, int n_cells, Real gamma);
+
+__device__ Real calculateFlux(Real *dev_conserved, int id_1, int id_2, int n_cells, Real gamma, Real kappa);
+
 #endif // CONDUCTION_GPU
 #endif // CUDA

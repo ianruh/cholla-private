@@ -13,3 +13,6 @@ Makefile
 
 ## dropbox file
 .DS_Store
+
+## IDE files
+.vscode/
