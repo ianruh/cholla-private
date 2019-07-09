@@ -60,20 +60,25 @@ __global__ void conduction_kernel(Real *dev_conserved, int nx, int ny, int nz, i
     // Always do x dimension
     right_flux = calculateFlux(dev_conserved, id, right_id, n_cells, gamma, kappa); // Calc right bound flux
     left_flux = calculateFlux(dev_conserved, left_id, id, n_cells, gamma, kappa);   // Calc left bound flux
-    dev_conserved[4*n_cells + id] += (left_flux - right_flux)*(dt/dx);              // Change energy
 
     // Do y dimension if necessary
     if(ny > 1) {
       front_flux = calculateFlux(dev_conserved, id, front_id, n_cells, gamma, kappa);
       back_flux = calculateFlux(dev_conserved, back_id, id, n_cells, gamma, kappa);
-      dev_conserved[4*n_cells + id] += (back_flux - front_flux)*(dt/dy);
     }
 
     // Do z dimension if neccessary
     if(nz > 1) {
       up_flux = calculateFlux(dev_conserved, id, up_id, n_cells, gamma, kappa);
       down_flux = calculateFlux(dev_conserved, down_id, id, n_cells, gamma, kappa);
-      // Update with z flux
+    }
+
+    // Update energy
+    dev_conserved[4*n_cells + id] += (left_flux - right_flux)*(dt/dx);
+    if(ny > 1) {
+      dev_conserved[4*n_cells + id] += (back_flux - front_flux)*(dt/dy);
+    }
+    if(nz > 1) {
       dev_conserved[4*n_cells + id] += (down_flux - up_flux)*(dt/dz);
     }
   }
