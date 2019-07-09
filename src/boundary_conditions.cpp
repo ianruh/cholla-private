@@ -490,81 +490,81 @@ void Grid3D::Zero_Bound()
     }
   }
 
-  if(H.ny > 1) {
-    // set exact boundaries on the +y face
-    for (k=0; k<H.nz; k++) {
-      for (j=H.ny-H.n_ghost; j<H.ny; j++) {
-        for (i=0; i<H.nx; i++) {
+  // if(H.ny > 1) {
+  //   // set exact boundaries on the +y face
+  //   for (k=0; k<H.nz; k++) {
+  //     for (j=H.ny-H.n_ghost; j<H.ny; j++) {
+  //       for (i=0; i<H.nx; i++) {
 
-          id = i + j*H.nx + k*H.nx*H.ny;
-          C.density[id]    = d;
-          C.momentum_x[id] = 0.0;
-          C.momentum_y[id] = 0.0;
-          C.momentum_z[id] = 0.0;
-          C.Energy[id]     = E;
+  //         id = i + j*H.nx + k*H.nx*H.ny;
+  //         C.density[id]    = d;
+  //         C.momentum_x[id] = 0.0;
+  //         C.momentum_y[id] = 0.0;
+  //         C.momentum_z[id] = 0.0;
+  //         C.Energy[id]     = E;
 
-        }
-      }
-    }
-  }
+  //       }
+  //     }
+  //   }
+  // }
   
-  if(H.ny > 1) {
-    // set exact boundaries on the -y face
-    for (k=0; k<H.nz; k++) {
-      for (j=0; j<H.n_ghost; j++) {
-        for (i=0; i<H.nx; i++) {
+  // if(H.ny > 1) {
+  //   // set exact boundaries on the -y face
+  //   for (k=0; k<H.nz; k++) {
+  //     for (j=0; j<H.n_ghost; j++) {
+  //       for (i=0; i<H.nx; i++) {
 
-          id = i + j*H.nx + k*H.nx*H.ny;
-          C.density[id]    = d;
-          C.momentum_x[id] = 0.0;
-          C.momentum_y[id] = 0.0;
-          C.momentum_z[id] = 0.0;
-          C.Energy[id]     = E;
+  //         id = i + j*H.nx + k*H.nx*H.ny;
+  //         C.density[id]    = d;
+  //         C.momentum_x[id] = 0.0;
+  //         C.momentum_y[id] = 0.0;
+  //         C.momentum_z[id] = 0.0;
+  //         C.Energy[id]     = E;
 
-        }
-      }
-    }
-  }
+  //       }
+  //     }
+  //   }
+  // }
 
-  // set exact boundaries on the +z face
-  if (H.nz > 1) {
+  // // set exact boundaries on the +z face
+  // if (H.nz > 1) {
 
-    for (k=H.nz-H.n_ghost; k<H.nz; k++) {
-      for (j=0; j<H.ny; j++) {
-        for (i=0; i<H.nx; i++) {
+  //   for (k=H.nz-H.n_ghost; k<H.nz; k++) {
+  //     for (j=0; j<H.ny; j++) {
+  //       for (i=0; i<H.nx; i++) {
 
-          id = i + j*H.nx + k*H.nx*H.ny;
-          C.density[id]    = d;
-          C.momentum_x[id] = 0.0;
-          C.momentum_y[id] = 0.0;
-          C.momentum_z[id] = 0.0;
-          C.Energy[id]     = E;
+  //         id = i + j*H.nx + k*H.nx*H.ny;
+  //         C.density[id]    = d;
+  //         C.momentum_x[id] = 0.0;
+  //         C.momentum_y[id] = 0.0;
+  //         C.momentum_z[id] = 0.0;
+  //         C.Energy[id]     = E;
 
-        }
-      }
-    }
+  //       }
+  //     }
+  //   }
 
-  }
+  // }
 
-  // set exact boundaries on the -z face
-  if (H.nz > 1) {
+  // // set exact boundaries on the -z face
+  // if (H.nz > 1) {
 
-    for (k=0; k<H.n_ghost; k++) {
-      for (j=0; j<H.ny; j++) {
-        for (i=0; i<H.nx; i++) {
+  //   for (k=0; k<H.n_ghost; k++) {
+  //     for (j=0; j<H.ny; j++) {
+  //       for (i=0; i<H.nx; i++) {
 
-          id = i + j*H.nx + k*H.nx*H.ny;
-          C.density[id]    = d;
-          C.momentum_x[id] = 0.0;
-          C.momentum_y[id] = 0.0;
-          C.momentum_z[id] = 0.0;
-          C.Energy[id]     = E;
+  //         id = i + j*H.nx + k*H.nx*H.ny;
+  //         C.density[id]    = d;
+  //         C.momentum_x[id] = 0.0;
+  //         C.momentum_y[id] = 0.0;
+  //         C.momentum_z[id] = 0.0;
+  //         C.Energy[id]     = E;
 
-        }
-      }
-    }
+  //       }
+  //     }
+  //   }
 
-  }
+  // }
 
 }
 

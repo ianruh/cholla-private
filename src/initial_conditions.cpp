@@ -60,6 +60,8 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
     Diff_Test();    
   } else if (strcmp(P.init, "TI")==0) {
     TI(P.rho, P.vx, P.vy, P.vz, P.P, P.A, P.my_reals[2]);
+  } else if(strcmp(P.init, "layered") == 0) {
+    Layered(P.vx, P.vy, P.vz, P.gamma);
   } else {
     chprintf ("ABORT: %s: Unknown initial conditions!\n", P.init);
     chexit(-1);
@@ -162,25 +164,160 @@ void Grid3D::Diff_Test() {
         // get cell-centered position
         Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
 
-        C.density[id]    = 1.0;
-        C.momentum_x[id] = 0.0;
-        C.momentum_y[id] = 0.0;
-        C.momentum_z[id] = 0.0;
-        C.Energy[id]     = 1.0/(gama-1.0) + 0.5*5.0*0.0;
+        // C.density[id]    = 1.0;
+        // C.momentum_x[id] = 0.0;
+        // C.momentum_y[id] = 0.0;
+        // C.momentum_z[id] = 0.0;
+        // C.Energy[id]     = 1.0/(gama-1.0) + 0.5*5.0*0.0;
 
-        // if (x_pos < 0.05 || x_pos > 0.95 || y_pos < 0.05 || y_pos > 0.95) {
-        //   C.density[id]    = 1.1;
-        //   C.momentum_x[id] = 0.0;
-        //   C.momentum_y[id] = 0.0;
-        //   C.momentum_z[id] = 0.0;
-        //   C.Energy[id]     = 1.0/(gama-1.0) + 0.5*5.0*0.0;
-        // } else {
-        //   C.density[id]    = 1.0;
-        //   C.momentum_x[id] = 0.0;
-        //   C.momentum_y[id] = 0.0;
-        //   C.momentum_z[id] = 0.0;
-        //   C.Energy[id]     = 1.0/(gama-1.0) + 0.5*5.0*0.0;
-        // }
+        if (x_pos < 0.05 || x_pos > 0.95) {
+          C.density[id]    = 1.1;
+          C.momentum_x[id] = 0.0;
+          C.momentum_y[id] = 0.0;
+          C.momentum_z[id] = 0.0;
+          C.Energy[id]     = 1.0/(gama-1.0) + 0.5*5.0*0.0;
+        } else {
+          C.density[id]    = 1.0;
+          C.momentum_x[id] = 0.0;
+          C.momentum_y[id] = 0.0;
+          C.momentum_z[id] = 0.0;
+          C.Energy[id]     = 1.0/(gama-1.0) + 0.5*5.0*0.0;
+        }
+      }
+    }
+  }
+}
+
+/*! \fn void Layered(Real vx, Real vy, Real vz)
+ *  \brief Initialize the grid with Cold/Hot/Cold layers */
+void Grid3D::Layered(Real vx, Real vy, Real vz, Real gamma) {
+  int i, j, k, id;
+  int istart, jstart, kstart, iend, jend, kend;
+  Real x_pos, y_pos, z_pos;
+  Real v, P, cs;
+
+  istart = H.n_ghost;
+  iend   = H.nx-H.n_ghost;
+  if (H.ny > 1) {
+    jstart = H.n_ghost;
+    jend   = H.ny-H.n_ghost;
+  } else {
+    jstart = 0;
+    jend   = H.ny;
+  }
+  if (H.nz > 1) {
+    kstart = H.n_ghost;
+    kend   = H.nz-H.n_ghost;
+  } else {
+    kstart = 0;
+    kend   = H.nz;
+  }
+
+	// |  ˇˇ Periodic ˇˇ    |
+	// |____________________|______________________
+	// |          C         | -------> Layer 5 or 1
+	// |--------------------| Boundary 4
+	// |          H         | -------> Layer 4
+	// |--------------------| Boundary 3
+	// |                    |
+	// |                    |
+	// |          C         | -------> Layer 3
+	// |                    |
+	// |--------------------| Boundary 2
+	// |          H         | ------>  Layer 2
+	// |--------------------| Boundary 1
+	// |          C         | ------>  Layer 1 or 5
+	// |____________________|______________________
+	// |   ^^ Periodic ^^   |
+	// |                    |
+
+  // d1 = 2.0;
+  // d2 = 1.0;
+  // v1 = 0.5;
+  // v2 = -0.5;
+  // P = 2.5;
+  // A = 0.1;
+
+	// Global Properties
+	Real pressure = 2.5;
+
+	// Hot/Cold Properties
+	Real rho_hot = 1.0;
+	Real rho_cold = 2.0;
+
+	// Hot Velocity
+	Real vx_hot = 0.5;
+	Real vy_hot = 0.0;
+	Real vz_hot = 0.0;
+	
+	// Cold Velocity
+	Real vx_cold = -0.5;
+	Real vy_cold = 0.0;
+	Real vz_cold = 0.0;
+
+	// Boundaries
+	Real bound_4 = 0.8;
+	Real bound_3 = 0.63;
+	Real bound_2 = 0.23;
+	Real bound_1 = 0.2;
+
+	// Perturbations
+	Real A = 0.1;
+
+  // set initial values of conserved variables
+  for(k=kstart; k<kend; k++) {
+    for(j=jstart; j<jend; j++) {
+      for(i=istart; i<iend; i++) {
+
+        //get cell index
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+        // get cell-centered position
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+
+				float position = (x_pos / H.domlen_x);
+				
+				if (position < bound_1) {							// Layer 1
+          C.density[id]    = rho_cold;
+          C.momentum_x[id] = rho_cold*vx_cold;
+          C.momentum_y[id] = rho_cold*vy_cold + rho_cold*A*sin(4*PI*x_pos);
+          C.momentum_z[id] = rho_cold*vz_cold;
+          C.Energy[id]     = pressure/(gamma-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + 
+						C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
+        } else if (position >= bound_1 
+						&& position < bound_2) {					// Layer 2
+          C.density[id]    = rho_hot;
+          C.momentum_x[id] = rho_hot*vx_hot;
+          C.momentum_y[id] = rho_hot*vy_hot + rho_hot*A*sin(4*PI*x_pos);
+          C.momentum_z[id] = rho_hot*vz_hot;
+          C.Energy[id]     = pressure/(gamma-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + 
+						C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];       
+	      } else if (position >= bound_2 
+						&& position < bound_3) {					// Layer 3
+					C.density[id]    = rho_cold;
+          C.momentum_x[id] = rho_cold*vx_cold;
+          C.momentum_y[id] = rho_cold*vy_cold + rho_cold*A*sin(4*PI*x_pos);
+          C.momentum_z[id] = rho_cold*vz_cold;
+        	C.Energy[id]     = pressure/(gamma-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + 
+						C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id]; 
+ 				} else if (position >= bound_3 
+						&& position < bound_4) {					// Layer 4
+					C.density[id]    = rho_hot;
+          C.momentum_x[id] = rho_hot*vx_hot;
+          C.momentum_y[id] = rho_hot*vy_hot + rho_hot*A*sin(4*PI*x_pos);
+          C.momentum_z[id] = rho_hot*vz_hot;
+        	C.Energy[id]     = pressure/(gamma-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + 
+						C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id]; 
+ 				} else if (position >= bound_4) {			// Layer 5
+					C.density[id]    = rho_cold;
+          C.momentum_x[id] = rho_cold*vx_cold;
+          C.momentum_y[id] = rho_cold*vy_cold + rho_cold*A*sin(4*PI*x_pos);
+          C.momentum_z[id] = rho_cold*vz_cold;
+          C.Energy[id]     = pressure/(gamma-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + 
+						C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id]; 
+ 				}
+
+				// printf("H.domlen_x: %f\n density: %f\nposition: %f", H.domlen_x, C.density[id], position);
       }
     }
   }

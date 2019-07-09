@@ -33,17 +33,19 @@ def plot(i):
 	energy_1d = np.array(f_1d['Energy'])
 	density_1d = np.array(f_1d['density'])
 	temp_1d = energy_1d * (1.6666667 - 1) / density_1d
-	plt.plot(nx_1d, temp_1d)
+	plt.plot(nx_1d, temp_1d, linestyle='-', linewidth=4)
+
+	# import code; code.interact(local=dict(globals(), **locals()))
 
 	# 2 D
 	nx_2d = np.linspace(0, 1, head_2d['dims'][0])
 	ny_2d = np.linspace(0, 1, head_2d['dims'][1])
 	energy_2d = np.swapaxes(np.array(f_2d['Energy']),0,1)
 	density_2d = np.swapaxes(np.array(f_2d['density']),0,1)
-	energy_2d_slice = energy_2d[50]
-	density_2d_slice = density_2d[50]
+	energy_2d_slice = energy_2d[0]
+	density_2d_slice = density_2d[0]
 	temp_2d = energy_2d_slice * (1.6666667 - 1) / density_2d_slice
-	plt.plot(nx_2d, temp_2d)
+	plt.plot(nx_2d, temp_2d, linestyle='--', linewidth=3)
 
 	# 3 D
 	nx_3d = np.linspace(0, 1, head_3d['dims'][0])
@@ -54,14 +56,14 @@ def plot(i):
 
 	#import code; code.interact(local=dict(globals(), **locals()))
 
-	energy_3d_line = energy_3d[int(len(ny_3d) / 2)][int(len(nz_3d) / 2)]
-	density_3d_line = density_3d[int(len(ny_3d) / 2)][int(len(nz_3d) / 2)]
+	energy_3d_line = energy_3d[0][0]
+	density_3d_line = density_3d[0][0]
 	temp_3d = energy_3d_line * (1.6666667 - 1) / density_3d_line
-	plt.plot(nx_3d, temp_3d)
+	plt.plot(nx_3d, temp_3d, linestyle=':', linewidth=2)
 	
 
 	plt.legend(['1D', '2D', '3D'])
-	plt.ylim([0.87,1.1])
+	plt.ylim([0.88,1.02])
 	plt.title('Temperature in 1D, 2D, and 3D Simulations')
 	plt.savefig(outDir + str(i) + '.png', dpi=200)
 	plt.close()

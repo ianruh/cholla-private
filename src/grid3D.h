@@ -458,6 +458,8 @@ class Grid3D
 
     void Diff_Test();
 
+    void Layered(Real vx, Real vy, Real vz, Real gamma);
+
     /*! \fn void TI(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
     *  \brief Thermal instability. */
     void TI(Real rho, Real vx, Real vy, Real vz, Real P, Real A, Real n_TI);

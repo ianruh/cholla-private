@@ -44,6 +44,11 @@ extern Real *buffer;
 extern Real *tmp1;
 extern Real *tmp2;
 
+// Array on the gpu to hold heat fluxes
+#ifdef CONDUCTION_GPU
+extern Real *dev_flux_array;
+#endif
+
 // Similarly, sizes of subgrid blocks and kernel dimensions are global variables
 // so subgrid splitting function is only called once
 // dimensions of subgrid blocks

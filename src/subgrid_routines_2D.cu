@@ -32,6 +32,9 @@ void sub_dimensions_2D(int nx, int ny, int n_ghost, int *nx_s, int *ny_s, int *b
   #ifdef H_CORRECTION
   cell_mem += 4*sizeof(Real);
   #endif
+  // #ifdef CONDUCTION_GPU
+  // cell_mem += 2*sizeof(Real)
+  // #endif
   max_vol = free / cell_mem; 
   // plus a buffer for dti array
   max_vol = max_vol - 400;

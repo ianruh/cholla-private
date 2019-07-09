@@ -99,7 +99,10 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     CudaSafeCall( cudaMalloc((void**)&dev_dti_array, 2*ngrid*sizeof(Real)) );
     #ifdef COOLING_GPU
     CudaSafeCall( cudaMalloc((void**)&dev_dt_array, 2*ngrid*sizeof(Real)) );
-    #endif    
+    #endif
+    #ifdef CONDUCTION_GPU
+    CudaSafeCall( cudaMalloc((void**)&dev_flux_array, 2*nx*ny*sizeof(Real)) );
+    #endif  
 
     #ifndef DYNAMIC_GPU_ALLOC 
     // If memory is single allocated: memory_allocated becomes true and succesive timesteps won't allocate memory.
@@ -208,9 +211,14 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
     // Thermal Conduction
     #ifdef CONDUCTION_GPU
-    Real kappa = 1.0;
-    conduction_kernel<<<dim2dGrid, dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, dx, dy, 1, gama, kappa);
+    Real kappa = 0.0001;
+    calculate_heat_flux_kernel<<<dim2dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, dx, dy, 1, gama, kappa);
     cudaError_t err = cudaGetLastError();
+    gpuErrchk(err);
+    CudaCheckError();
+    cudaDeviceSynchronize();
+    apply_heat_fluxes_kernel<<<dim2dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, dt, dx, dy, 1);
+    err = cudaGetLastError();
     gpuErrchk(err);
     CudaCheckError();
     #endif
