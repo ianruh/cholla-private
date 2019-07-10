@@ -13,7 +13,7 @@
 /*! \fn void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, 
                                       int n_ghost, int n_fields, Real dt, Real dx, Real dy, Real dz, Real gamma, Real kappa)
  *  \brief Calculates the heat flux for the cells in the grid. */
-__global__ void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real dx, Real dy, Real dz, Real gamma, Real kappa) {
+__global__ void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real dx, Real dy, Real dz, Real gamma) {
 
   // Calculate the grid properties
   int n_cells = nx * ny * nz;
@@ -58,19 +58,19 @@ __global__ void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_a
     Real cellTemp = calculateTemp(dev_conserved, id, n_cells, gamma);
     
     // Calculate right boundary flux
-    right_flux = calculateFlux(dev_conserved, cellTemp, id, right_id, n_cells, gamma, kappa, dx);
+    right_flux = calculateFlux(dev_conserved, cellTemp, id, right_id, n_cells, gamma, dx);
     // Store flux in global memory
     dev_flux_array[id] = right_flux;
 
     // Do y dimension if necessary
     if(ny > 1) {
-      front_flux = calculateFlux(dev_conserved, cellTemp, id, front_id, n_cells, gamma, kappa, dy);
+      front_flux = calculateFlux(dev_conserved, cellTemp, id, front_id, n_cells, gamma, dy);
       dev_flux_array[n_cells + id] = front_flux;
     }
 
     // Do z dimension if neccessary
     if(nz > 1) {
-      up_flux = calculateFlux(dev_conserved, cellTemp, id, up_id, n_cells, gamma, kappa, dz);
+      up_flux = calculateFlux(dev_conserved, cellTemp, id, up_id, n_cells, gamma, dz);
       dev_flux_array[2*n_cells + id] = up_flux;
     }
   }
@@ -141,6 +141,8 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
 /*! \fn void calculateTemp(Real *dev_conserved, int id, int n_cells, Real gamma)
  *  \brief Calculate the temperature of the cell with the given id.  */
 __device__ Real calculateTemp(Real *dev_conserved, int id, int n_cells, Real gamma) {
+  Real mu = 1.0;
+  
   Real d  =  dev_conserved[            id];        // Density
   Real E  =  dev_conserved[4*n_cells + id];        // Energy
   Real vx =  dev_conserved[1*n_cells + id] / d;    // Velocity X
@@ -148,7 +150,14 @@ __device__ Real calculateTemp(Real *dev_conserved, int id, int n_cells, Real gam
   Real vz =  dev_conserved[3*n_cells + id] / d;    // Velocity Z
   Real p  = (E - 0.5*d*(vx*vx + vy*vy + vz*vz)) * (gamma - 1.0); // Pressure
   p  = fmax(p, (Real) TINY_NUMBER);                // Make sure pressure isn't too low.
-  return p / d; // Return temperature
+
+  // Calculate number density
+  Real n = d*DENSITY_UNIT / (mu * MP);
+
+  // Calculate temp
+  Real T = p*PRESSURE_UNIT/ (n*KB);
+
+  return T; // Return temperature
 }
 
 /*! \fn void calculateFlux(Real *dev_conserved, Real cell_temp, int id_1, int id_2, 
@@ -156,11 +165,18 @@ __device__ Real calculateTemp(Real *dev_conserved, int id, int n_cells, Real gam
  *  \brief Calculate the flux between the two passed cells. The cell_temp is 
           also passed so the temperature of the current cell doesn't need to be
           calculated again for every boundary. */
-__device__ Real calculateFlux(Real *dev_conserved, Real cell_temp, int id_1, int id_2, int n_cells, Real gamma, Real kappa, Real del) {
+__device__ Real calculateFlux(Real *dev_conserved, Real cell_temp, int id_1, int id_2, int n_cells, Real gamma, Real del) {
   Real temp_2 = calculateTemp(dev_conserved, id_2, n_cells, gamma);
-
-  Real kd = kappa * 0.5 * (dev_conserved[id_1] + dev_conserved[id_2]);
+  Real T_avg = 0.5 * (dev_conserved[id_1] + dev_conserved[id_2]);
+  Real kd = kappa(T_avg) * T_avg;
   return kd*(cell_temp - temp_2)/del;
+}
+
+/*! \fn Real kappa(Real temp)
+ *  \brief Calculate kappa given the passed temperature.  */
+__device__ Real kappa(Real temp) {
+  Real kappa = 0.01;
+  return kappa;
 }
 
 #endif // CONDUCTION_GPU
