@@ -160,8 +160,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
   // Thermal Conduction
   #ifdef CONDUCTION_GPU
-  Real kappa = 1.0;
-  calculate_heat_flux_kernel<<<dimGrid, dimBlock>>>(dev_conserved, dev_flux_array, nx, ny, nz, n_ghost, n_fields, dt, dx, 1, 1, gama, kappa);
+  calculate_heat_flux_kernel<<<dimGrid, dimBlock>>>(dev_conserved, dev_flux_array, nx, ny, nz, n_ghost, n_fields, dt, dx, 1, 1, gama);
   cudaError_t err = cudaGetLastError();
   gpuErrchk(err);
   CudaCheckError();
@@ -172,7 +171,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   CudaCheckError();
   #endif
 
-  
+
   // Step 7: Calculate the next timestep
   Calc_dt_1D<<<dimGrid,dimBlock>>>(dev_conserved, n_cells, n_ghost, dx, dev_dti_array, gama);
   CudaCheckError();
