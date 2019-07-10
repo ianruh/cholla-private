@@ -1,5 +1,5 @@
 /*! \file conduction_cuda.cu
- *  \brief Function to calculate the thermal conduction between cells.*/
+*  \brief Function to calculate the thermal conduction between cells.*/
 
 #ifdef CUDA
 #ifdef CONDUCTION_GPU
@@ -10,11 +10,12 @@
 #include"global_cuda.h"
 #include"conduction_cuda.h"
 
-/*! \fn void conduction_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma)
- *  \brief When passed an array of conserved variables and a timestep, adjust the energy
-        of each cell according to thermal conduction. */
-__global__ void conduction_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real dx, Real dy, Real dz, Real gamma, Real kappa) {
+/*! \fn void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, 
+                                      int n_ghost, int n_fields, Real dt, Real dx, Real dy, Real dz, Real gamma, Real kappa)
+ *  \brief Calculates the heat flux for the cells in the grid. */
+__global__ void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real dx, Real dy, Real dz, Real gamma, Real kappa) {
 
+  // Calculate the grid properties
   int n_cells = nx * ny * nz;
   int i_start, i_end, j_start, j_end, k_start, k_end;
   i_start = n_ghost;
@@ -34,52 +35,111 @@ __global__ void conduction_kernel(Real *dev_conserved, int nx, int ny, int nz, i
     k_end = nz-n_ghost;
   }
 
-  Real right_flux, left_flux, front_flux, back_flux, up_flux, down_flux;
+  Real right_flux, front_flux, up_flux;  // Each cell finds these, so in the end all fluxes are found
 
-  // get a global thread ID
+  // Calculate cell properties
   int blockId = blockIdx.x + blockIdx.y*gridDim.x;
   int id = threadIdx.x + blockId * blockDim.x;
   int zid = id / (nx*ny);
   int yid = (id - zid*nx*ny) / nx;
   int xid = id - zid*nx*ny - yid*nx;
-  // and a thread id within the block
-  // int tid = threadIdx.x;
 
-  // FYI id = xid + yid*nx + zid*nx*ny
+  // Find adjacent cell ids
   int right_id  = (xid + 1) + yid*nx + zid*nx*ny;
-  int left_id   = (xid - 1) + yid*nx + zid*nx*ny;
   int front_id  = xid + (yid + 1)*nx + zid*nx*ny;
-  int back_id   = xid + (yid - 1)*nx + zid*nx*ny;
   int up_id     = xid + yid*nx + (zid + 1)*nx*ny;
-  int down_id   = xid + yid*nx + (zid - 1)*nx*ny;
 
-  bool validCell = xid >= i_start && yid >= j_start && zid >= k_start && xid < i_end && yid < j_end && zid < k_end;
+  // Determine if the current cell should find the boundary fluxes
+  bool validCell = xid >= i_start - 1 && yid >= j_start - 1 && zid >= k_start - 1 && xid < i_end && yid < j_end && zid < k_end;
 
   if(validCell) {
+
+    // Find current cell temperature
+    Real cellTemp = calculateTemp(dev_conserved, id, n_cells, gamma);
     
-    // Always do x dimension
-    right_flux = calculateFlux(dev_conserved, id, right_id, n_cells, gamma, kappa); // Calc right bound flux
-    left_flux = calculateFlux(dev_conserved, left_id, id, n_cells, gamma, kappa);   // Calc left bound flux
-    dev_conserved[4*n_cells + id] += (left_flux - right_flux)*(dt/dx);              // Change energy
+    // Calculate right boundary flux
+    right_flux = calculateFlux(dev_conserved, cellTemp, id, right_id, n_cells, gamma, kappa, dx);
+    // Store flux in global memory
+    dev_flux_array[id] = right_flux;
 
     // Do y dimension if necessary
     if(ny > 1) {
-      front_flux = calculateFlux(dev_conserved, id, front_id, n_cells, gamma, kappa);
-      back_flux = calculateFlux(dev_conserved, back_id, id, n_cells, gamma, kappa);
-      dev_conserved[4*n_cells + id] += (back_flux - front_flux)*(dt/dy);
+      front_flux = calculateFlux(dev_conserved, cellTemp, id, front_id, n_cells, gamma, kappa, dy);
+      dev_flux_array[n_cells + id] = front_flux;
     }
 
     // Do z dimension if neccessary
     if(nz > 1) {
-      up_flux = calculateFlux(dev_conserved, id, up_id, n_cells, gamma, kappa);
-      down_flux = calculateFlux(dev_conserved, down_id, id, n_cells, gamma, kappa);
-      // Update with z flux
+      up_flux = calculateFlux(dev_conserved, cellTemp, id, up_id, n_cells, gamma, kappa, dz);
+      dev_flux_array[2*n_cells + id] = up_flux;
+    }
+  }
+}
+
+/*! \fn void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, 
+                                      int n_ghost, Real dt, Real dx, Real dy, Real dz)
+ *  \brief Apply the heat fluxes calculated in the previous kernel.  */
+__global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, Real dt, Real dx, Real dy, Real dz) {
+
+  // Calculate grid properties
+  int n_cells = nx * ny * nz;
+  int i_start, i_end, j_start, j_end, k_start, k_end;
+  i_start = n_ghost;
+  i_end = nx - n_ghost;
+  if (ny == 1) {
+    j_start = 0;
+    j_end = 1;
+  } else {
+    j_start = n_ghost;
+    j_end = ny-n_ghost;
+  }
+  if (nz == 1) {
+    k_start = 0;
+    k_end = 1;
+  } else {
+    k_start = n_ghost;
+    k_end = nz-n_ghost;
+  }
+
+  // Calculate cell properties
+  int blockId = blockIdx.x + blockIdx.y*gridDim.x;
+  int id = threadIdx.x + blockId * blockDim.x;
+  int zid = id / (nx*ny);
+  int yid = (id - zid*nx*ny) / nx;
+  int xid = id - zid*nx*ny - yid*nx;
+
+  // Find adjacent cell ids (Opposite side of what was found in previous kernel)
+  int left_id   = (xid - 1) + yid*nx + zid*nx*ny;
+  int back_id   = xid + (yid - 1)*nx + zid*nx*ny;
+  int down_id   = xid + yid*nx + (zid - 1)*nx*ny;
+
+  // Should the current cell apply the fluxes
+  bool validCell = xid >= i_start && yid >= j_start && zid >= k_start && xid < i_end && yid < j_end && zid < k_end;
+
+  if(validCell) {
+    // X
+    Real right_flux = dev_flux_array[id];               // The previous kernel stored the right boundary flux at the current id
+    Real left_flux = dev_flux_array[left_id];
+    dev_conserved[4*n_cells + id] += (left_flux - right_flux)*(dt/dx);
+
+    // Y
+    if(ny > 1) {
+      Real front_flux = dev_flux_array[n_cells + id];
+      Real back_flux = dev_flux_array[n_cells + back_id];
+      dev_conserved[4*n_cells + id] += (back_flux - front_flux)*(dt/dy);
+    }
+
+    // Z
+    if(nz > 1) {
+      Real up_flux = dev_flux_array[2*n_cells + id];
+      Real down_flux = dev_flux_array[2*n_cells + down_id];
       dev_conserved[4*n_cells + id] += (down_flux - up_flux)*(dt/dz);
     }
   }
 }
 
-
+/*! \fn void calculateTemp(Real *dev_conserved, int id, int n_cells, Real gamma)
+ *  \brief Calculate the temperature of the cell with the given id.  */
 __device__ Real calculateTemp(Real *dev_conserved, int id, int n_cells, Real gamma) {
   Real d  =  dev_conserved[            id];        // Density
   Real E  =  dev_conserved[4*n_cells + id];        // Energy
@@ -91,12 +151,16 @@ __device__ Real calculateTemp(Real *dev_conserved, int id, int n_cells, Real gam
   return p / d; // Return temperature
 }
 
-__device__ Real calculateFlux(Real *dev_conserved, int id_1, int id_2, int n_cells, Real gamma, Real kappa) {
-  Real temp_1 = calculateTemp(dev_conserved, id_1, n_cells, gamma);
+/*! \fn void calculateFlux(Real *dev_conserved, Real cell_temp, int id_1, int id_2, 
+                            int n_cells, Real gamma, Real kappa, Real del)
+ *  \brief Calculate the flux between the two passed cells. The cell_temp is 
+          also passed so the temperature of the current cell doesn't need to be
+          calculated again for every boundary. */
+__device__ Real calculateFlux(Real *dev_conserved, Real cell_temp, int id_1, int id_2, int n_cells, Real gamma, Real kappa, Real del) {
   Real temp_2 = calculateTemp(dev_conserved, id_2, n_cells, gamma);
 
   Real kd = kappa * 0.5 * (dev_conserved[id_1] + dev_conserved[id_2]);
-  return kd*(temp_1 - temp_2);
+  return kd*(cell_temp - temp_2)/del;
 }
 
 #endif // CONDUCTION_GPU

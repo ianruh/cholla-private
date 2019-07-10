@@ -18,6 +18,9 @@ Real *host_dti_array;
 #ifdef COOLING_GPU
 Real *host_dt_array;
 #endif
+#ifdef CONDUCTION_GPU
+Real *dev_flux_array;
+#endif
 Real *buffer, *tmp1, *tmp2;
 int nx_s, ny_s, nz_s;
 int x_off_s, y_off_s, z_off_s;
