@@ -174,8 +174,8 @@ __device__ void prefun_CUDA(Real *f, Real *fd, Real p, Real dk, Real pk, Real ck
  
   if (p <= pk) {
     // rarefaction wave
-    *f = (2.0 / (gamma - 1.0))*ck*(powf(p/pk, (gamma - 1.0)/(2.0 * gamma)) - 1.0);
-    *fd = (1.0/(dk*ck))*powf((p/pk), -((gamma + 1.0)/(2.0 * gamma)));
+    *f = (2.0 / (gamma - 1.0))*ck*(pow((p/pk), Real (((gamma - 1.0)/(2.0 * gamma)))) - 1.0);
+    *fd = (1.0/(dk*ck))*pow((p/pk), Real (-((gamma + 1.0)/(2.0 * gamma))));
   } 
   else 
   {
@@ -244,9 +244,9 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v, Real
       }
       else 
       {
-        if (vm - cl*powf(pm/pl, (gamma - 1.0)/(2.0 * gamma)) < 0) // sampled point is in star left state
+        if (vm - cl*pow(pm/pl, Real((gamma - 1.0)/(2.0 * gamma))) < 0) // sampled point is in star left state
         {
-          *d = dl*powf(pm/pl, 1.0/gamma);
+          *d = dl*pow(pm/pl, Real(1.0/gamma));
           *v = vm;
           *p = pm;
         } 
@@ -254,8 +254,8 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v, Real
         {
           c = (2.0 / (gamma + 1.0))*(cl + ((gamma - 1.0) / 2.0)*vxl);
           *v = c;
-          *d = dl*powf(c/cl, 2.0 / (gamma - 1.0));
-          *p = pl*powf(c/cl, 2.0 * gamma / (gamma - 1.0));
+          *d = dl*pow(c/cl, Real(2.0 / (gamma - 1.0)));
+          *p = pl*pow(c/cl, Real(2.0 * gamma / (gamma - 1.0)));
         }
       }
     } 
@@ -304,9 +304,9 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v, Real
       } 
       else 
       {
-        if (vm + cr*powf(pm/pr, (gamma - 1.0)/(2.0 * gamma)) >= 0) // sampled point is in star right state
+        if (vm + cr*pow(pm/pr, Real((gamma - 1.0)/(2.0 * gamma))) >= 0) // sampled point is in star right state
         {    
-          *d = dr*powf(pm/pr, (1.0/gamma));
+          *d = dr*pow(pm/pr, Real(1.0/gamma));
           *v = vm;
           *p = pm;
         } 
@@ -314,8 +314,8 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v, Real
         {    
           c = (2.0 / (gamma + 1.0))*(cr - ((gamma - 1.0) / 2.0)*vxr);
           *v = -c;
-          *d = dr*powf(c/cr, 2.0 / (gamma - 1.0));
-          *p = pr*powf(c/cr, 2.0 * gamma / (gamma - 1.0));
+          *d = dr*pow(c/cr, Real(2.0 / (gamma - 1.0)));
+          *p = pr*pow(c/cr, Real(2.0 * gamma / (gamma - 1.0)));
         }
       }
     } 
