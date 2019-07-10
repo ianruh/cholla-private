@@ -417,7 +417,11 @@ class Grid3D
 
     /*! \fn void Disk_3D(parameters P)
      *  \brief Initialize the grid with a 3D disk following a Miyamoto-Nagai profile. */
-    void Disk_3D(parameters P);    
+    void Disk_3D(parameters P);
+
+    /*! \fn void TI(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
+     *  \brief Thermal instability. */
+    void TI(Real rho, Real vx, Real vy, Real vz, Real P, Real A, Real n_TI);    
 
     /*! \fn void Set_Boundary_Conditions(parameters P)
      *  \brief Set the boundary conditions based on info in the parameters structure. */

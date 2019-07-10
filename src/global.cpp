@@ -110,7 +110,8 @@ void parse_params (char *param_file, struct parameters * parms)
   parms->flag_delta = 0;
 #endif /*ROTATED_PROJECTION*/
 
-
+  int i_misc = 0;
+  
   /* Read next line */
   while ((s = fgets (buff, sizeof buff, fp)) != NULL)
   {
@@ -205,6 +206,8 @@ void parse_params (char *param_file, struct parameters * parms)
       parms->P_r = atof(value);
     else if (strcmp(name, "diaph")==0)
       parms->diaph = atof(value);
+    else if (strncmp(name, "myreal_", strlen("myreal_")))
+      parms->my_reals[i_misc++] = atof(value);
 #ifdef ROTATED_PROJECTION
     else if (strcmp(name, "nxr")==0)
       parms->nxr = atoi(value);
