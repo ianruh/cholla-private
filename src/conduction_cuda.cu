@@ -175,7 +175,7 @@ __device__ Real calculateFlux(Real *dev_conserved, Real cell_temp, int id_1, int
 /*! \fn Real kappa(Real temp)
  *  \brief Calculate kappa given the passed temperature.  */
 __device__ Real kappa(Real temp) {
-  Real kappa = 0.01;
+  Real kappa = 0.00079218835705;
   return kappa;
 }
 
