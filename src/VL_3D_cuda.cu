@@ -105,7 +105,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
     #endif
     #ifdef CONDUCTION_GPU
-    CudaSafeCall( cudaMalloc((void**)&dev_flux_array, 3*nx*ny*nz*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&dev_flux_array, 2*3*nx*ny*nz*sizeof(Real)) );
     #endif
     
     #ifndef DYNAMIC_GPU_ALLOC 
@@ -235,7 +235,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     gpuErrchk(err);
     CudaCheckError();
     cudaDeviceSynchronize();
-    apply_heat_fluxes_kernel<<<dim1dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, dt, dx, dy, dz);
+    apply_heat_fluxes_kernel<<<dim1dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, dt, dx, dy, dz, dev_dt_array);
     err = cudaGetLastError();
     gpuErrchk(err);
     CudaCheckError();
