@@ -83,7 +83,7 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     }
     // allocate an array on the CPU to hold max_dti returned from each thread block
     host_dti_array = (Real *) malloc(2*ngrid*sizeof(Real));
-    #ifdef COOLING_GPU
+    #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
     host_dt_array = (Real *) malloc(2*ngrid*sizeof(Real));
     #endif  
 
@@ -97,7 +97,7 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     CudaSafeCall( cudaMalloc((void**)&F_x,  n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&F_y,  n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&dev_dti_array, 2*ngrid*sizeof(Real)) );
-    #ifdef COOLING_GPU
+    #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
     CudaSafeCall( cudaMalloc((void**)&dev_dt_array, 2*ngrid*sizeof(Real)) );
     #endif
     #ifdef CONDUCTION_GPU
