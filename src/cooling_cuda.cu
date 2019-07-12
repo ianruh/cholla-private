@@ -419,8 +419,8 @@ __device__ Real Blondin_hc(Real n, Real T, Real t) {
   Real n_eq = 5.172111021461324e7; //P.my_reals[1]; // number density
   
   Real flux = 1.0;
-  Real omega_pd = 1.0;                // Change
-  Real amp_pd = 1e-4;                 // Change
+  Real omega_pd = 5.0;
+  Real amp_pd = 0.15;
   Real sinwt = sin(omega_pd*t);
   flux += amp_pd*sinwt;
 
