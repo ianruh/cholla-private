@@ -110,13 +110,8 @@ void parse_params (char *param_file, struct parameters * parms)
   parms->flag_delta = 0;
 #endif /*ROTATED_PROJECTION*/
 
-<<<<<<< HEAD
-  int i_misc = 0;
-  
-=======
   int cust_params_counter = 0;
 
->>>>>>> 7a60fb8e5970b4d0cfcab5980b06678d108d8cfe
   /* Read next line */
   while ((s = fgets (buff, sizeof buff, fp)) != NULL)
   {
