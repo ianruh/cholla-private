@@ -49,8 +49,6 @@ __global__ void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_a
   int front_id  = xid + (yid + 1)*nx + zid*nx*ny;
   int up_id     = xid + yid*nx + (zid + 1)*nx*ny;
 
-  // Find current cell temperature
-  dev_flux_array[n_cells + id] = calculateTemp(dev_conserved, id, n_cells, gamma);
   
   __syncthreads();
 
@@ -58,6 +56,9 @@ __global__ void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_a
   bool validCell = xid >= i_start - 1 && yid >= j_start - 1 && zid >= k_start - 1 && xid < i_end && yid < j_end && zid < k_end;
 
   if(validCell) {
+
+    // Find current cell temperature
+    dev_flux_array[n_cells + id] = calculateTemp(dev_conserved, id, n_cells, gamma);
 
     // Calculate right boundary flux
     right_flux = calculateFlux(dev_conserved, dev_flux_array[n_cells + id], id, dev_flux_array[n_cells + right_id], right_id, n_cells, gamma, dx);
@@ -151,7 +152,7 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
       Real min_dt_temp = qa / 4.0;
       if(ny > 1) min_dt_temp = qa / 8.0;
       if(nz > 1) min_dt_temp = qa / 6.0;
-      min_dt[id] = min_dt_temp;
+      min_dt[tid] = min_dt_temp;
     }
   }
   __syncthreads();
