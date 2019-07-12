@@ -151,7 +151,7 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
       Real min_dt_temp = qa / 4.0;
       if(ny > 1) min_dt_temp = qa / 8.0;
       if(nz > 1) min_dt_temp = qa / 6.0;
-      min_dt[id] = min_dt_temp
+      min_dt[id] = min_dt_temp;
     }
   }
   __syncthreads();
