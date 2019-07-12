@@ -30,7 +30,7 @@ __global__ void Update_Conserved_Variables_2D_half(Real *dev_conserved, Real *de
                                                    int n_ghost, Real dx, Real dy, Real dt, Real gamma, int n_fields);
 
 
-Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real dt, int n_fields)
+Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real dt, int n_fields, Real t)
 {
 
   //Here, *host_conserved contains the entire
@@ -204,7 +204,7 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
     // Apply cooling
     #ifdef COOLING_GPU
-    cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array);
+    cooling_kernel<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, gama, dev_dt_array, t);
     CudaCheckError();
     #endif
 

@@ -15,7 +15,7 @@
 /*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real dt, Real gamma)
  *  \brief When passed an array of conserved variables and a timestep, adjust the value
            of the total energy for each cell according to the specified cooling function. */
-__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array);
+__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array, Real t);
 
 
 /* \fn __device__ Real test_cool(Real n, Real T)
@@ -41,6 +41,8 @@ __device__ Real CIE_cool(Real n, Real T);
 __device__ Real Cloudy_cool(Real n, Real T);
 
 __device__ Real Blondin_cool(Real n, Real T);
+
+__device__ Real Blondin_hc(Real n, Real T, Real t);
 
 #endif //COOLING_CUDA_H
 #endif //COOLING_GPU

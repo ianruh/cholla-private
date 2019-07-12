@@ -31,7 +31,7 @@ __global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *de
 
 
 
-Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt, int n_fields)
+Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, int x_off, int n_ghost, Real dx, Real xbound, Real dt, int n_fields, Real t)
 {
   //Here, *host_conserved contains the entire
   //set of conserved variables on the grid
@@ -154,7 +154,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
   // Apply cooling
   #ifdef COOLING_GPU
-  cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama, dev_dt_array);
+  cooling_kernel<<<dimGrid,dimBlock>>>(dev_conserved, nx, ny, nz, n_ghost, n_fields, dt, gama, dev_dt_array, t);
   CudaCheckError();
   #endif
 

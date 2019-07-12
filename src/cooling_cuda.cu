@@ -16,7 +16,7 @@ extern texture<float, 2, cudaReadModeElementType> heatTexObj;
 /*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
  *  \brief When passed an array of conserved variables and a timestep, adjust the value
            of the total energy for each cell according to the specified cooling function. */
-__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array)
+__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma, Real *dt_array, Real t)
 {
   __shared__ Real min_dt[TPB];
 
@@ -108,7 +108,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // call the cooling function
     // cool = CIE_cool(n, T); 
     //cool = Cloudy_cool(n, T); 
-    cool = Blondin_cool(n, T);
+    // cool = Blondin_cool(n, T);
+    cool = Blondin_hc(n, T, t);
 
     // calculate change in temperature given dt
     // del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
@@ -127,7 +128,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
       // calculate cooling again
       // cool = CIE_cool(n, T);
       //cool = Cloudy_cool(n, T);
-      cool = Blondin_cool(n, T);
+      // cool = Blondin_cool(n, T);
+      cool = Blondin_hc(n, T, t);
       // calculate new change in temperature
       // del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
       del_T = cool*dt*TIME_UNIT*(gamma-1.0)*mu*MP/KB;
@@ -151,7 +153,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // calculate cooling rate for new T
     // cool = CIE_cool(n, T);
     //cool = Cloudy_cool(n, T);
-    cool = Blondin_cool(n, T);
+    // cool = Blondin_cool(n, T);
+    cool = Blondin_hc(n, T, t);
     //printf("%d %d %d %e %e %e\n", xid, yid, zid, n, T, cool);
     // only use good cells in timestep calculation (in case some have crashed)
     if (n > 0 && T > 0 && cool > 0.0) {
@@ -375,18 +378,17 @@ __device__ Real Cloudy_cool(Real n, Real T)
 #endif
 }
 
-//__device__ Real Blondin_cool(Real n, Real T, Real my_reals[])
-__device__ Real Blondin_cool(Real n, Real T)
-{
+//__device__ Real Blondin_cool(Real n, Real T)
+__device__ Real Blondin_cool(Real n, Real T) {
   // First specify location on radiative equilibrium curve
   // these correspond to the equilibrium values from PW15
- // parameters P;
+  // parameters P;
 
-   Real mu = 1.;
+  Real mu = 1.;
   Real xi_eq = 190.; //P.my_reals[0];        // photoionization parameter
   Real n_eq = 5.172111021461324e7; //P.my_reals[1]; // number density
 
-   Real net_cool; // net cooling rate
+  Real net_cool; // net cooling rate
   Real xi = xi_eq*(n_eq/n);
   Real Gc,Gx,Ll,Lb;
   Real T_L = 1.3e5;   // characteristic line emission temp
@@ -402,7 +404,43 @@ __device__ Real Blondin_cool(Real n, Real T)
   /* line cooling */
   Ll = 1.7e-18 * exp(-T_L/T) / xi / sqrt(T) + 1e-24;
 
-   net_cool = Lb + Ll - Gc - Gx;
+  net_cool = Lb + Ll - Gc - Gx;
+  return n*net_cool/(mu*MP);
+}
+
+//__device__ Real Blondin_hc(Real n, Real T, Real t)
+__device__ Real Blondin_hc(Real n, Real T, Real t) {
+  // First specify location on radiative equilibrium curve
+  // these correspond to the equilibrium values from PW15
+  // parameters P;
+
+  Real mu = 1.;
+  Real xi_eq = 190.; //P.my_reals[0];        // photoionization parameter
+  Real n_eq = 5.172111021461324e7; //P.my_reals[1]; // number density
+  
+  Real flux = 1.0;
+  Real omega_pd = 1.0;                // Change
+  Real amp_pd = 1e-4;                 // Change
+  Real sinwt = sin(omega_pd*t);
+  flux += amp_pd*sinwt;
+
+  Real net_cool; // net cooling rate
+  Real xi = xi_eq*(n_eq/n)*flux;
+  Real Gc,Gx,Ll,Lb;
+  Real T_L = 1.3e5;   // characteristic line emission temp
+  Real T_x = 1.16e8;  // 10 keV X-ray spectrum
+  Real Gc_fac = 8.890467707253008e-36;
+
+  /* Compton */
+  Gc  = Gc_fac * xi * (T_x - 4.*T);
+  /* photo heating */
+  Gx = 1.5e-21 * pow(xi,0.25) / sqrt(T) * (1.- T/T_x);
+  /* bremss, this takes into account the prefactors for case C */
+  Lb = 3.3e-27 * sqrt(T);
+  /* line cooling */
+  Ll = 1.7e-18 * exp(-T_L/T) / xi / sqrt(T) + 1e-24;
+
+  net_cool = Lb + Ll - Gc - Gx;
   return n*net_cool/(mu*MP);
 }
 
