@@ -206,7 +206,7 @@ void parse_params (char *param_file, struct parameters * parms)
       parms->P_r = atof(value);
     else if (strcmp(name, "diaph")==0)
       parms->diaph = atof(value);
-    else if (strncmp(name, "myreals_", strlen("myreals_")) == 0)
+    else if (strncmp(name, "myreals_", strlen("myreals_"))==0)
       parms->custom_params[cust_params_counter++] = atof(value);
 #ifdef ROTATED_PROJECTION
     else if (strcmp(name, "nxr")==0)

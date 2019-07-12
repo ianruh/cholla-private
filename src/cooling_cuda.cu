@@ -9,6 +9,7 @@
 #include"global.h"
 #include"global_cuda.h"
 #include"cooling_cuda.h"
+#include"custom_params_cuda.cuh"
 
 extern texture<float, 2, cudaReadModeElementType> coolTexObj;
 extern texture<float, 2, cudaReadModeElementType> heatTexObj;
@@ -412,11 +413,10 @@ __device__ Real Blondin_cool(Real n, Real T) {
 __device__ Real Blondin_hc(Real n, Real T, Real t) {
   // First specify location on radiative equilibrium curve
   // these correspond to the equilibrium values from PW15
-  // parameters P;
 
-  Real mu = 1.;
-  Real xi_eq = 190.; //P.my_reals[0];        // photoionization parameter
-  Real n_eq = 5.172111021461324e7; //P.my_reals[1]; // number density
+  Real mu = custom_params[0];
+  Real xi_eq = custom_params[1];
+  Real n_eq = custom_params[2];
   
   Real flux = 1.0;
   Real omega_pd = 5.0;

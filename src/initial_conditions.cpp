@@ -57,7 +57,7 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
   } else if (strcmp(P.init, "Read_Grid")==0) {
     Read_Grid(P);
   } else if (strcmp(P.init, "TI")==0) {
-    TI(P.rho, P.vx, P.vy, P.vz, P.P, P.A, P.my_reals[2]);
+    TI(P.rho, P.vx, P.vy, P.vz, P.P, P.A, P.custom_params[3]);
   } else {
     chprintf ("ABORT: %s: Unknown initial conditions!\n", P.init);
     chexit(-1);

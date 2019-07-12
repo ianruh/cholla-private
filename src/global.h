@@ -147,7 +147,6 @@ struct parameters
   Real ddelta_dt;
   int flag_delta;
 #endif /*ROTATED_PROJECTION*/
-  Real my_reals[99]; // an array to hold an additional 99 parameters
 };
 
 /*! \fn void parse_params(char *param_file, struct parameters * parms);

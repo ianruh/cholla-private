@@ -50,7 +50,9 @@ gamma=1.666666666666667
 # also order here must match access within initial_conditions() and 
 # the Blondin_cooling() functions - these will go into an array called
 # my_reals[] and accessed as my_reals[0], my_reals[1], ...
-myreals_xi0 = 190.0      # equilibrium photoionization parameter
-myreals_n0 = 5.17211102e7       # equilibrium number density
+
+myreals_mu=1.0
+myreals_xi_eq=190.0                 # photoionization parameter
+myreals_n_eq=5.172111021461324e7  # number density
 #myreals_nR = 0.2269939690711435     # growth rate (solution to cubic DR) - (No Conduction)
 myreals_nR = 0.2054492715297163     # growth rate (solution to cubic DR) - (With Conduction)
