@@ -131,6 +131,7 @@ struct parameters
   Real v_r;
   Real P_r;
   Real diaph;
+  Real custom_params[100] = {0}; // an array to hold an additional 100 parameters
 #ifdef ROTATED_PROJECTION
   int nxr;
   int nzr;

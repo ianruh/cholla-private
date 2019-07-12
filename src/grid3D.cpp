@@ -33,8 +33,9 @@
 #ifdef CLOUDY_COOL
 #include "cooling_wrapper.h"
 #endif
-
-
+#ifdef CUDA
+#include "custom_params_cuda.h"
+#endif
 
 /*! \fn Grid3D(void)
  *  \brief Constructor for the Grid. */
@@ -90,6 +91,10 @@ void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real
  *  \brief Initialize the grid. */
 void Grid3D::Initialize(struct parameters *P)
 {
+  printf("Custom Parameter Init: %f\n", P->custom_params[0]);
+#ifdef CUDA
+  Copy_Custom_Params(P->custom_params);
+#endif
   // number of fields to track (default 5 is # of conserved variables)
   H.n_fields = 5;
 
