@@ -145,10 +145,14 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
       dev_conserved[4*n_cells + id] += (down_flux - up_flux)*(dt/dz);
     }
 
-    // if (dev_conserved[4*n_cells + id] > 0) {
-    //   // Do nothing until I figure out the condition
-    //   min_dt[tid] = 
-    // }
+    // Check the cell hasn't crashed
+    if (dev_conserved[4*n_cells + id] > 0) {
+      Real qa = dx*dx * dev_conserved[id] / kappa(dev_flux_array[n_cells + id]);
+      Real min_dt_temp = qa / 4.0;
+      if(ny > 1) min_dt_temp = qa / 8.0;
+      if(nz > 1) min_dt_temp = qa / 6.0;
+      min_dt[id] = min_dt_temp
+    }
   }
   __syncthreads();
 
