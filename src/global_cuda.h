@@ -29,13 +29,13 @@ extern Real *dev_conserved, *dev_conserved_half;
 extern Real *Q_Lx, *Q_Rx, *Q_Ly, *Q_Ry, *Q_Lz, *Q_Rz, *F_x, *F_y, *F_z;
 // array of inverse timesteps for dt calculation
 extern Real *dev_dti_array;
-#ifdef COOLING_GPU
+#if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
 // array of timesteps for dt calculation (cooling restriction)
 extern Real *dev_dt_array;
 #endif  
 // Array on the CPU to hold max_dti returned from each thread block
 extern Real *host_dti_array;
-#ifdef COOLING_GPU
+#if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
 extern Real *host_dt_array;
 #endif
 // Buffer to copy conserved variable blocks to/from
