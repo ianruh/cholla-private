@@ -50,31 +50,38 @@ __global__ void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_a
   int up_id     = xid + yid*nx + (zid + 1)*nx*ny;
 
   
-  __syncthreads();
 
   // Determine if the current cell should find the boundary fluxes
   bool validCell = xid >= i_start - 1 && yid >= j_start - 1 && zid >= k_start - 1 && xid < i_end && yid < j_end && zid < k_end;
 
   if(validCell) {
-
+    // This isn't very effecient, but same reason to seperate fluxes, different blocks
     // Find current cell temperature
-    dev_flux_array[n_cells + id] = calculateTemp(dev_conserved, id, n_cells, gamma);
+    dev_flux_array[id] = calculateTemp(dev_conserved, id, n_cells, gamma);
+    dev_flux_array[right_id] = calculateTemp(dev_conserved, right_id, n_cells, gamma);
+    dev_flux_array[front_id] = calculateTemp(dev_conserved, front_id, n_cells, gamma);
+    dev_flux_array[up_id] = calculateTemp(dev_conserved, up_id, n_cells, gamma);
 
+  }
+
+  __syncthreads();
+
+  if(validCell) {
     // Calculate right boundary flux
-    right_flux = calculateFlux(dev_conserved, dev_flux_array[n_cells + id], id, dev_flux_array[n_cells + right_id], right_id, n_cells, gamma, dx);
+    right_flux = calculateFlux(dev_conserved, dev_flux_array[id], id, dev_flux_array[right_id], right_id, n_cells, gamma, dx);
     // Store flux in global memory
-    dev_flux_array[id] = right_flux;
+    dev_flux_array[n_cells + id] = right_flux;
 
     // Do y dimension if necessary
     if(ny > 1) {
-      front_flux = calculateFlux(dev_conserved, dev_flux_array[n_cells + id], id, dev_flux_array[n_cells + front_id], front_id, n_cells, gamma, dy);
-      dev_flux_array[n_cells + id] = front_flux;
+      front_flux = calculateFlux(dev_conserved, dev_flux_array[id], id, dev_flux_array[front_id], front_id, n_cells, gamma, dy);
+      dev_flux_array[2*n_cells + id] = front_flux;
     }
 
     // Do z dimension if neccessary
     if(nz > 1) {
-      up_flux = calculateFlux(dev_conserved, dev_flux_array[n_cells + id], id, dev_flux_array[n_cells + up_id], up_id, n_cells, gamma, dz);
-      dev_flux_array[2*n_cells + id] = up_flux;
+      up_flux = calculateFlux(dev_conserved, dev_flux_array[id], id, dev_flux_array[up_id], up_id, n_cells, gamma, dz);
+      dev_flux_array[3*n_cells + id] = up_flux;
     }
   }
 }
@@ -128,27 +135,27 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
 
   if(validCell) {
     // X
-    Real right_flux = dev_flux_array[id];               // The previous kernel stored the right boundary flux at the current id
-    Real left_flux = dev_flux_array[left_id];
+    Real right_flux = dev_flux_array[n_cells + id];               // The previous kernel stored the right boundary flux at the current id
+    Real left_flux = dev_flux_array[n_cells + left_id];
     dev_conserved[4*n_cells + id] += (left_flux - right_flux)*(dt/dx);
 
     // Y
     if(ny > 1) {
-      Real front_flux = dev_flux_array[n_cells + id];
-      Real back_flux = dev_flux_array[n_cells + back_id];
+      Real front_flux = dev_flux_array[2*n_cells + id];
+      Real back_flux = dev_flux_array[2*n_cells + back_id];
       dev_conserved[4*n_cells + id] += (back_flux - front_flux)*(dt/dy);
     }
 
     // Z
     if(nz > 1) {
-      Real up_flux = dev_flux_array[2*n_cells + id];
-      Real down_flux = dev_flux_array[2*n_cells + down_id];
+      Real up_flux = dev_flux_array[3*n_cells + id];
+      Real down_flux = dev_flux_array[3*n_cells + down_id];
       dev_conserved[4*n_cells + id] += (down_flux - up_flux)*(dt/dz);
     }
 
     // Check the cell hasn't crashed
     if (dev_conserved[4*n_cells + id] > 0) {
-      Real qa = dx*dx * dev_conserved[id] / kappa(dev_flux_array[n_cells + id]);
+      Real qa = dx*dx * dev_conserved[id] / kappa(dev_flux_array[id]);
       Real min_dt_temp = qa / 4.0;
       if(ny > 1) min_dt_temp = qa / 8.0;
       if(nz > 1) min_dt_temp = qa / 6.0;
