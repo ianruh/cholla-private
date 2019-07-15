@@ -109,8 +109,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // call the cooling function
     // cool = CIE_cool(n, T); 
     //cool = Cloudy_cool(n, T); 
-    // cool = Blondin_cool(n, T);
-    cool = Blondin_hc(n, T, t);
+    cool = Blondin_cool(n, T);
+    // cool = Blondin_hc(n, T, t);
 
     // calculate change in temperature given dt
     // del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
@@ -129,8 +129,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
       // calculate cooling again
       // cool = CIE_cool(n, T);
       //cool = Cloudy_cool(n, T);
-      // cool = Blondin_cool(n, T);
-      cool = Blondin_hc(n, T, t);
+      cool = Blondin_cool(n, T);
+      // cool = Blondin_hc(n, T, t);
       // calculate new change in temperature
       // del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
       del_T = cool*dt*TIME_UNIT*(gamma-1.0)*mu*MP/KB;
@@ -154,8 +154,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // calculate cooling rate for new T
     // cool = CIE_cool(n, T);
     //cool = Cloudy_cool(n, T);
-    // cool = Blondin_cool(n, T);
-    cool = Blondin_hc(n, T, t);
+    cool = Blondin_cool(n, T);
+    // cool = Blondin_hc(n, T, t);
     //printf("%d %d %d %e %e %e\n", xid, yid, zid, n, T, cool);
     // only use good cells in timestep calculation (in case some have crashed)
     if (n > 0 && T > 0 && cool > 0.0) {
