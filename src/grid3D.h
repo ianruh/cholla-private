@@ -458,6 +458,8 @@ class Grid3D
         as per the Noh problem in Liska, 2003, or in Stone, 2008. */
     void Noh_Boundary();
 
+    void Clouds(Real pressure, Real rho_hot, Real rho_cold, Real vx_hot, Real vy_hot, Real vz_hot, Real vx_cold, Real vy_cold, Real vz_cold, Real bound_1, Real bound_2, Real bound_3, Real bound_4, Real A, Real gamma);
+
 
 #ifdef   MPI_CHOLLA
     void Set_Boundaries_MPI(struct parameters P);

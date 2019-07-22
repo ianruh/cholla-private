@@ -109,8 +109,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // call the cooling function
     // cool = CIE_cool(n, T); 
     //cool = Cloudy_cool(n, T); 
-    cool = Blondin_cool(n, T);
-    // cool = Blondin_hc(n, T, t);
+    // cool = Blondin_cool(n, T);
+    cool = Blondin_hc(n, T, t);
 
     // calculate change in temperature given dt
     // del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
@@ -129,8 +129,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
       // calculate cooling again
       // cool = CIE_cool(n, T);
       //cool = Cloudy_cool(n, T);
-      cool = Blondin_cool(n, T);
-      // cool = Blondin_hc(n, T, t);
+      // cool = Blondin_cool(n, T);
+      cool = Blondin_hc(n, T, t);
       // calculate new change in temperature
       // del_T = cool*dt*TIME_UNIT*(gamma-1.0)/(n*KB);
       del_T = cool*dt*TIME_UNIT*(gamma-1.0)*mu*MP/KB;
@@ -154,8 +154,8 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // calculate cooling rate for new T
     // cool = CIE_cool(n, T);
     //cool = Cloudy_cool(n, T);
-    cool = Blondin_cool(n, T);
-    // cool = Blondin_hc(n, T, t);
+    // cool = Blondin_cool(n, T);
+    cool = Blondin_hc(n, T, t);
     //printf("%d %d %d %e %e %e\n", xid, yid, zid, n, T, cool);
     // only use good cells in timestep calculation (in case some have crashed)
     if (n > 0 && T > 0 && cool > 0.0) {
@@ -414,14 +414,17 @@ __device__ Real Blondin_hc(Real n, Real T, Real t) {
   // First specify location on radiative equilibrium curve
   // these correspond to the equilibrium values from PW15
 
-  Real mu = custom_params[0];
-  Real xi_eq = custom_params[1];
-  Real n_eq = custom_params[2];
+  Real mu = custom_params[13];
+  Real xi_eq = custom_params[14];
+  Real n_eq = custom_params[15];
   
   Real flux = 1.0;
-  Real omega_pd = 5.0;
-  Real amp_pd = 0.15;
+  Real omega_pd = custom_params[17];
+  Real amp_pd = custom_params[16];
   Real sinwt = sin(omega_pd*t);
+  if(custom_params[18] == 1) {
+    Real sinwt = sin(omega_pd*t)*sin(omega_pd*t);
+  }
   flux += amp_pd*sinwt;
 
   Real net_cool; // net cooling rate

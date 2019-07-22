@@ -58,6 +58,11 @@ void Grid3D::Set_Initial_Conditions(parameters P) {
     Read_Grid(P);
   } else if (strcmp(P.init, "TI")==0) {
     TI(P.rho, P.vx, P.vy, P.vz, P.P, P.A, P.custom_params[3]);
+  } else if(strcmp(P.init, "Clouds")==0) {
+    Clouds(P.custom_params[0], P.custom_params[1], P.custom_params[2], P.custom_params[3], 
+        P.custom_params[4], P.custom_params[5], P.custom_params[6], P.custom_params[7], 
+        P.custom_params[8], P.custom_params[9], P.custom_params[10], P.custom_params[11], 
+        P.custom_params[12], P.A, P.gamma);
   } else {
     chprintf ("ABORT: %s: Unknown initial conditions!\n", P.init);
     chexit(-1);
@@ -1051,6 +1056,124 @@ void Grid3D::TI(Real rho, Real vx, Real vy, Real vz, Real P, Real A, Real n_TI) 
         C.momentum_y[id] = rho*vy;
         C.momentum_z[id] = rho*vz;
         C.Energy[id]     = pres/(gama-1.0) + 0.5*C.momentum_x[id]*C.momentum_x[id]/C.density[id];
+      }
+    }
+  }
+}
+
+/*! \fn void Layered(Real vx, Real vy, Real vz)
+ *  \brief Initialize the grid with Cold/Hot/Cold layers */
+void Grid3D::Clouds(Real pressure, Real rho_hot, Real rho_cold, Real vx_hot, Real vy_hot, Real vz_hot, Real vx_cold, Real vy_cold, Real vz_cold, Real bound_1, Real bound_2, Real bound_3, Real bound_4, Real A, Real gamma) {
+  int i, j, k, id;
+  int istart, jstart, kstart, iend, jend, kend;
+  Real x_pos, y_pos, z_pos;
+  Real v, P, cs;
+
+  istart = H.n_ghost;
+  iend   = H.nx-H.n_ghost;
+  if (H.ny > 1) {
+    jstart = H.n_ghost;
+    jend   = H.ny-H.n_ghost;
+  } else {
+    jstart = 0;
+    jend   = H.ny;
+  }
+  if (H.nz > 1) {
+    kstart = H.n_ghost;
+    kend   = H.nz-H.n_ghost;
+  } else {
+    kstart = 0;
+    kend   = H.nz;
+  }
+
+	// |  ˇˇ Periodic ˇˇ    |
+	// |____________________|______________________
+	// |          H         | -------> Layer 5 or 1
+	// |--------------------| Boundary 4
+	// |          C         | -------> Layer 4
+	// |--------------------| Boundary 3
+	// |                    |
+	// |                    |
+	// |          H         | -------> Layer 3
+	// |                    |
+	// |--------------------| Boundary 2
+	// |          C         | ------>  Layer 2
+	// |--------------------| Boundary 1
+	// |          H         | ------>  Layer 1 or 5
+	// |____________________|______________________
+	// |   ^^ Periodic ^^   |
+	// |                    |
+
+  // set initial values of conserved variables
+  for(k=kstart; k<kend; k++) {
+    for(j=jstart; j<jend; j++) {
+      for(i=istart; i<iend; i++) {
+
+        //get cell index
+        id = i + j*H.nx + k*H.nx*H.ny;
+
+        // get cell-centered position
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+
+				float position = x_pos;
+
+        Real coldPerturb = rho_cold*A*sin(4*PI*x_pos);
+        Real hotPerturb = rho_hot*A*sin(4*PI*x_pos);
+				
+				if (position < bound_1) {							// Layer 1
+          C.density[id]    = rho_hot;
+          C.momentum_x[id] = rho_hot*vx_hot;
+          C.momentum_y[id] = rho_hot*vy_hot;
+          C.momentum_z[id] = rho_hot*vz_hot;
+          C.Energy[id]     = pressure/(gamma-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + 
+						C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
+          if(H.ny > 1) {
+            C.momentum_y[id] += hotPerturb;
+          }
+        } else if (position >= bound_1 
+						&& position < bound_2) {					// Layer 2
+          C.density[id]    = rho_cold;
+          C.momentum_x[id] = rho_cold*vx_cold;
+          C.momentum_y[id] = rho_cold*vy_cold;
+          C.momentum_z[id] = rho_cold*vz_cold;
+          C.Energy[id]     = pressure/(gamma-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + 
+						C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
+          if(H.ny > 1) {
+            C.momentum_y[id] += coldPerturb;
+          }       
+	      } else if (position >= bound_2 
+						&& position < bound_3) {					// Layer 3
+					C.density[id]    = rho_hot;
+          C.momentum_x[id] = rho_hot*vx_hot;
+          C.momentum_y[id] = rho_hot*vy_hot;
+          C.momentum_z[id] = rho_hot*vz_hot;
+        	C.Energy[id]     = pressure/(gamma-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + 
+						C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
+          if(H.ny > 1) {
+            C.momentum_y[id] += hotPerturb;
+          }
+ 				} else if (position >= bound_3 
+						&& position < bound_4) {					// Layer 4
+					C.density[id]    = rho_cold;
+          C.momentum_x[id] = rho_cold*vx_cold;
+          C.momentum_y[id] = rho_cold*vy_cold;
+          C.momentum_z[id] = rho_cold*vz_cold;
+        	C.Energy[id]     = pressure/(gamma-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + 
+						C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id];
+          if(H.ny > 1) {
+            C.momentum_y[id] += coldPerturb;
+          }
+ 				} else if (position >= bound_4) {			// Layer 5
+					C.density[id]    = rho_hot;
+          C.momentum_x[id] = rho_hot*vx_hot;
+          C.momentum_y[id] = rho_hot*vy_hot;
+          C.momentum_z[id] = rho_hot*vz_hot;
+          C.Energy[id]     = pressure/(gamma-1.0) + 0.5*(C.momentum_x[id]*C.momentum_x[id] + 
+						C.momentum_y[id]*C.momentum_y[id] + C.momentum_z[id]*C.momentum_z[id])/C.density[id]; 
+          if(H.ny > 1) {
+            C.momentum_y[id] += hotPerturb;
+          }
+ 				}
       }
     }
   }

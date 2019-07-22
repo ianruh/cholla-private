@@ -25,8 +25,8 @@ ifdef MPI_FLAGS
   CC	= mpicc
   CXX   = mpicxx
 
-  #MPI_FLAGS += -DSLAB
-  MPI_FLAGS += -DBLOCK
+  MPI_FLAGS += -DSLAB
+#   MPI_FLAGS += -DBLOCK
 
 else
   CC	= gcc
