@@ -231,13 +231,9 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     // Thermal Conduction
     #ifdef CONDUCTION_GPU
     calculate_heat_flux_kernel<<<dim1dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, dx, dy, dz, gama);
-    cudaError_t err = cudaGetLastError();
-    gpuErrchk(err);
     CudaCheckError();
     cudaDeviceSynchronize();
     apply_heat_fluxes_kernel<<<dim1dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, dt, dx, dy, dz, dev_dt_array);
-    err = cudaGetLastError();
-    gpuErrchk(err);
     CudaCheckError();
     #endif
 
