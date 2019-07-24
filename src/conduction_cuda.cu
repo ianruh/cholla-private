@@ -11,8 +11,53 @@
 #include"conduction_cuda.h"
 #include"custom_params_cuda.cuh"
 
+/*! \fn void calculate_temp_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, 
+                                      int n_ghost, int n_fields, Real gamma)
+ *  \brief Calculates the temp for the cells in the grid. */
+ __global__ void calculate_temp_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, int n_fields, Real gamma) {
+
+  // Calculate the grid properties
+  int n_cells = nx * ny * nz;
+  int i_start, i_end, j_start, j_end, k_start, k_end;
+  i_start = n_ghost;
+  i_end = nx - n_ghost;
+  if (ny == 1) {
+    j_start = 0;
+    j_end = 1;
+  } else {
+    j_start = n_ghost;
+    j_end = ny-n_ghost;
+  }
+  if (nz == 1) {
+    k_start = 0;
+    k_end = 1;
+  } else {
+    k_start = n_ghost;
+    k_end = nz-n_ghost;
+  }
+
+  // Calculate cell properties
+  int blockId = blockIdx.x + blockIdx.y*gridDim.x;
+  int id = threadIdx.x + blockId * blockDim.x;
+  int zid = id / (nx*ny);
+  int yid = (id - zid*nx*ny) / nx;
+  int xid = id - zid*nx*ny - yid*nx;
+
+  // Find adjacent cell ids
+  int right_id  = (xid + 1) + yid*nx + zid*nx*ny;
+  int front_id  = xid + (yid + 1)*nx + zid*nx*ny;
+  int up_id     = xid + yid*nx + (zid + 1)*nx*ny;
+
+  // Determine if the current cell should find the boundary fluxes
+  bool validCell = xid >= i_start - 1 && yid >= j_start - 1 && zid >= k_start - 1 && xid < i_end && yid < j_end && zid < k_end;
+
+  if(validCell) {
+    dev_flux_array[id] = calculateTemp(dev_conserved, id, n_cells, gamma);
+  }
+}
+
 /*! \fn void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, 
-                                      int n_ghost, int n_fields, Real dt, Real dx, Real dy, Real dz, Real gamma, Real kappa)
+                                      int n_ghost, int n_fields, Real dt, Real dx, Real dy, Real dz, Real gamma)
  *  \brief Calculates the heat flux for the cells in the grid. */
 __global__ void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real dx, Real dy, Real dz, Real gamma) {
 
@@ -50,22 +95,8 @@ __global__ void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_a
   int front_id  = xid + (yid + 1)*nx + zid*nx*ny;
   int up_id     = xid + yid*nx + (zid + 1)*nx*ny;
 
-  
-
   // Determine if the current cell should find the boundary fluxes
   bool validCell = xid >= i_start - 1 && yid >= j_start - 1 && zid >= k_start - 1 && xid < i_end && yid < j_end && zid < k_end;
-
-  if(validCell) {
-    // This isn't very effecient, but same reason to seperate fluxes, different blocks
-    // Find current cell temperature
-    dev_flux_array[id]        = calculateTemp(dev_conserved, id,        n_cells, gamma);
-    dev_flux_array[right_id]  = calculateTemp(dev_conserved, right_id,  n_cells, gamma);
-    dev_flux_array[front_id]  = calculateTemp(dev_conserved, front_id,  n_cells, gamma);
-    dev_flux_array[up_id]     = calculateTemp(dev_conserved, up_id,     n_cells, gamma);
-
-  }
-
-  __syncthreads();
 
   if(validCell) {
     // Calculate right boundary flux

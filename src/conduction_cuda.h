@@ -9,6 +9,11 @@
 #include"global.h"
 
 
+/*! \fn void calculate_temp_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, 
+                                      int n_ghost, int n_fields, Real gamma)
+ *  \brief Calculates the temp for the cells in the grid. */
+ __global__ void calculate_temp_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, int n_fields, Real gamma)
+
 /*! \fn void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, 
                                       int n_ghost, int n_fields, Real dt, Real dx, Real dy, Real dz, Real gamma, Real kappa)
  *  \brief Calculates the heat flux for the cells in the grid. */
