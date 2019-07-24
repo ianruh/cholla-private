@@ -9,11 +9,17 @@
 // Define the array of params in constant memory (declared in the .cuh)
 __constant__ Real custom_params[100];
 
+__constant__ Real temp_init;
+
 /* \fn void Copy_Custom_Params(Real* parameters)
 * \brief Copy the passed parameters to constant memory on the GPU */
 void Copy_Custom_Params(Real* parameters) {
     printf("Custom Parameters: [%f, %f, %f, %f, %f, ...]\n", parameters[0], parameters[1], parameters[2], parameters[3], parameters[4]);
     cudaMemcpyToSymbol(custom_params, parameters, 100*sizeof(Real));
+}
+
+void Copy_Temp_Init(Real temp) {
+    cudaMemcpyToSymbol(temp_init, &temp, sizeof(Real));
 }
 
 #endif

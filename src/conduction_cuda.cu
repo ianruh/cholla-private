@@ -9,6 +9,7 @@
 #include"global.h"
 #include"global_cuda.h"
 #include"conduction_cuda.h"
+#include"custom_params_cuda.cuh"
 
 /*! \fn void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, 
                                       int n_ghost, int n_fields, Real dt, Real dx, Real dy, Real dz, Real gamma, Real kappa)
@@ -57,10 +58,10 @@ __global__ void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_a
   if(validCell) {
     // This isn't very effecient, but same reason to seperate fluxes, different blocks
     // Find current cell temperature
-    dev_flux_array[id] = calculateTemp(dev_conserved, id, n_cells, gamma);
-    dev_flux_array[right_id] = calculateTemp(dev_conserved, right_id, n_cells, gamma);
-    dev_flux_array[front_id] = calculateTemp(dev_conserved, front_id, n_cells, gamma);
-    dev_flux_array[up_id] = calculateTemp(dev_conserved, up_id, n_cells, gamma);
+    dev_flux_array[id]        = calculateTemp(dev_conserved, id,        n_cells, gamma);
+    dev_flux_array[right_id]  = calculateTemp(dev_conserved, right_id,  n_cells, gamma);
+    dev_flux_array[front_id]  = calculateTemp(dev_conserved, front_id,  n_cells, gamma);
+    dev_flux_array[up_id]     = calculateTemp(dev_conserved, up_id,     n_cells, gamma);
 
   }
 
@@ -181,8 +182,6 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
 /*! \fn void calculateTemp(Real *dev_conserved, int id, int n_cells, Real gamma)
  *  \brief Calculate the temperature of the cell with the given id.  */
 __device__ Real calculateTemp(Real *dev_conserved, int id, int n_cells, Real gamma) {
-  Real mu = 1.0;
-  
   Real d  =  dev_conserved[            id];        // Density
   Real E  =  dev_conserved[4*n_cells + id];        // Energy
   Real vx =  dev_conserved[1*n_cells + id] / d;    // Velocity X
@@ -211,8 +210,10 @@ __device__ Real calculateFlux(Real *dev_conserved, Real temp_1, int id_1, Real t
 /*! \fn Real kappa(Real temp)
  *  \brief Calculate kappa given the passed temperature.  */
 __device__ Real kappa(Real temp) {
-  Real kappa = 0.00079218835705;
-  return kappa;
+  Real kappa0 = 0.00079218835705;
+  // Real kappa = kappa0 * pow((temp/temp_init),2.5);
+  // printf("%f,", kappa);
+  return kappa0;
 }
 
 #endif // CONDUCTION_GPU

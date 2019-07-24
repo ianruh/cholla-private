@@ -10,7 +10,7 @@ ny=1
 # number of grid cells in the z dimension
 nz=1
 # final output time
-tout=200.
+tout=10.
 # time interval for output
 outstep=0.25
 # name of initial conditions
@@ -81,5 +81,5 @@ myreals_mu=1.0
 myreals_xi_eq=190.0                 # photoionization parameter
 myreals_n_eq=5.172111021461324e7  # number density
 myreals_flux_amp=0.15
-myreals_flux_omega=2.5
+myreals_flux_omega=1.0
 myreals_run_sin^2=0         # 0 for sin(wt), 1 for sin^2(wt)

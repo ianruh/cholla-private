@@ -15,6 +15,7 @@
 #include "error_handling.h"
 #include <stdio.h>
 #include <cmath>
+#include "custom_params_cuda.h"
 
 
 /*! \fn void Set_Initial_Conditions(parameters P)
@@ -1104,6 +1105,9 @@ void Grid3D::Clouds(Real pressure, Real rho_hot, Real rho_cold, Real vx_hot, Rea
 	// |   ^^ Periodic ^^   |
 	// |                    |
 
+  Real temp_hot_init = gamma * pressure / rho_hot;
+  Copy_Temp_Init(temp_hot_init);
+
   // set initial values of conserved variables
   for(k=kstart; k<kend; k++) {
     for(j=jstart; j<jend; j++) {
@@ -1178,12 +1182,3 @@ void Grid3D::Clouds(Real pressure, Real rho_hot, Real rho_cold, Real vx_hot, Rea
     }
   }
 }
-
-
-
-
-
-
-
-
-

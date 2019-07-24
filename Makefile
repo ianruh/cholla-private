@@ -19,7 +19,7 @@ CUDA = -DCUDA #-DCUDA_ERROR_CHECK
 
 #To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
 #otherwise gcc/g++ will be used for serial compilation
-MPI_FLAGS =  -DMPI_CHOLLA
+MPI_FLAGS =  #-DMPI_CHOLLA
 
 ifdef MPI_FLAGS
   CC	= mpicc
@@ -67,8 +67,8 @@ CONDUCTION = -DCONDUCTION_GPU
 #endif
 
 ifdef CUDA
-CUDA_INCLUDE = -I/opt/cudatoolkit/9.0/include/
-CUDA_LIBS = -L/opt/cudatoolkit/9.0/lib64 -lcuda -lcudart
+CUDA_INCLUDE = -I/opt/cudatoolkit/10.1/include/
+CUDA_LIBS = -L/opt/cudatoolkit/10.1/lib64 -lcuda -lcudart
 endif
 
 #ifeq ($(OUTPUT),-DHDF5)

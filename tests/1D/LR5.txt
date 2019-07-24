@@ -1,6 +1,6 @@
 #
 # Parameter File for 1d cloud coalescence
-#
+# This needs to be run without the variable cooling blondin function
 
  ################################################
 # number of grid cells in the x dimension
