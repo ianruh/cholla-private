@@ -185,7 +185,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   for (int i=0; i<ngrid; i++) {
     max_dti = fmax(max_dti, host_dti_array[i]);
   }
-  #ifdef COOLING_GPU
+  #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
   // copy the dt array from cooling onto the CPU
   CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
   // find maximum inverse timestep from cooling time
@@ -213,7 +213,7 @@ void Free_Memory_VL_1D() {
 
   // free the CPU memory
   free(host_dti_array);
-  #ifdef COOLING_GPU
+  #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
   free(host_dt_array);  
   #endif  
 
@@ -224,8 +224,11 @@ void Free_Memory_VL_1D() {
   cudaFree(Q_Rx);
   cudaFree(F_x);
   cudaFree(dev_dti_array);
-  #ifdef COOLING_GPU
+  #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
   cudaFree(dev_dt_array);
+  #endif
+  #ifdef CONDUCTION_GPU
+  cudaFree(dev_flux_array);
   #endif
 
 }

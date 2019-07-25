@@ -49,7 +49,7 @@
   int up_id     = xid + yid*nx + (zid + 1)*nx*ny;
 
   // Determine if the current cell should find the boundary fluxes
-  bool validCell = xid >= i_start - 1 && yid >= j_start - 1 && zid >= k_start - 1 && xid < i_end && yid < j_end && zid < k_end;
+  bool validCell = xid >= i_start - 1 && yid >= j_start - 1 && zid >= k_start - 1 && xid <= i_end && yid <= j_end && zid <= k_end;
 
   if(validCell) {
     dev_flux_array[id] = calculateTemp(dev_conserved, id, n_cells, gamma);

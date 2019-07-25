@@ -239,7 +239,7 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     for (int i=0; i<2*ngrid; i++) {
       max_dti = fmax(max_dti, host_dti_array[i]);
     }
-    #ifdef COOLING_GPU
+    #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
     // copy the dt array from cooling onto the CPU
     CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, 2*ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
     // iterate through to find the minimum dt for this subgrid block
@@ -273,7 +273,7 @@ void Free_Memory_VL_2D() {
   // free the CPU memory
   if (block_tot > 1) free(buffer);
   free(host_dti_array);
-  #ifdef COOLING_GPU
+  #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
   free(host_dt_array);  
   #endif  
 
@@ -287,8 +287,11 @@ void Free_Memory_VL_2D() {
   cudaFree(F_x);
   cudaFree(F_y);
   cudaFree(dev_dti_array);
-  #ifdef COOLING_GPU
+  #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
   cudaFree(dev_dt_array);
+  #endif
+  #ifdef CONDUCTION_GPU
+  cudaFree(dev_flux_array);
   #endif
 
 }
