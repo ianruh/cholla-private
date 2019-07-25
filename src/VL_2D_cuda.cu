@@ -41,7 +41,7 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
   // Initialize dt values
   Real max_dti = 0;
-  #ifdef COOLING_GPU
+  #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
   Real min_dt = 1e10;
   #endif
 
