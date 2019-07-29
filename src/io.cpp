@@ -13,6 +13,7 @@
 #include"mpi_routines.h"
 #endif
 #include"error_handling.h"
+#include "custom_params_cuda.h"
 
 /* function used to rotate points about an axis in 3D for the rotated projection output routine */
 void rotate_point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp);
@@ -1801,6 +1802,8 @@ void Grid3D::Write_Slices_HDF5(hid_t file_id)
 /*! \fn void Read_Grid(struct parameters P)
  *  \brief Read in grid data from an output file. */
 void Grid3D::Read_Grid(struct parameters P) {
+
+  Copy_Temp_Init(1.66666666667 * 0.6 / 0.3475);
 
   char filename[100];
   char timestep[20];

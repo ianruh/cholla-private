@@ -43,11 +43,6 @@
   int yid = (id - zid*nx*ny) / nx;
   int xid = id - zid*nx*ny - yid*nx;
 
-  // Find adjacent cell ids
-  int right_id  = (xid + 1) + yid*nx + zid*nx*ny;
-  int front_id  = xid + (yid + 1)*nx + zid*nx*ny;
-  int up_id     = xid + yid*nx + (zid + 1)*nx*ny;
-
   // Determine if the current cell should find the boundary fluxes
   bool validCell = xid >= i_start - 1 && yid >= j_start - 1 && zid >= k_start - 1 && xid <= i_end && yid <= j_end && zid <= k_end;
 
@@ -242,9 +237,9 @@ __device__ Real calculateFlux(Real *dev_conserved, Real temp_1, int id_1, Real t
  *  \brief Calculate kappa given the passed temperature.  */
 __device__ Real kappa(Real temp) {
   Real kappa0 = 0.00079218835705;
-  // Real kappa = kappa0 * pow((temp/temp_init),2.5);
+  Real kappa = kappa0 * pow((temp/temp_init),2.5);
   // printf("%f,", kappa);
-  return kappa0;
+  return kappa;
 }
 
 #endif // CONDUCTION_GPU
