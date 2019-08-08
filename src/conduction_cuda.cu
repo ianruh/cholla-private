@@ -237,9 +237,9 @@ __device__ Real calculateFlux(Real *dev_conserved, Real temp_1, int id_1, Real t
  *  \brief Calculate kappa given the passed temperature.  */
 __device__ Real kappa(Real temp) {
   Real kappa0 = 0.00079218835705;
-  Real kappa = kappa0 * pow((temp/temp_init),2.5);
+  // Real kappa = kappa0 * pow((temp/temp_init),2.5);
   // printf("%f,", kappa);
-  return kappa;
+  return kappa0;
 }
 
 #endif // CONDUCTION_GPU

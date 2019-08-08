@@ -77,8 +77,8 @@ endif
 #endif
 
 ifeq ($(OUTPUT),-DHDF5)
-HDF5_INCL = -I/usr/projects/hpcsoft/toss3/kodiak/hdf5/1.8.16_intel-17.0.4_intel-mpi-2017.1/include
-HDF5_LIBS = -L/usr/projects/hpcsoft/toss3/kodiak/hdf5/1.8.16_intel-17.0.4_openmpi-2.1.2/lib -lhdf5
+HDF5_INCL = -I/usr/projects/hpcsoft/toss3/kodiak/hdf5/1.8.16_intel-18.0.5_intel-mpi-2018.4/include
+HDF5_LIBS = -L/usr/projects/hpcsoft/toss3/kodiak/hdf5/1.8.16_intel-18.0.5_openmpi-2.1.2/lib -lhdf5
 endif
 
 INCL   = -I./ $(HDF5_INCL)
