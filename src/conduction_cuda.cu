@@ -200,8 +200,12 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
   }
 
   // write the result for this block to global memory
-  if (tid == 0 && dt_array[blockIdx.x] > min_dt[0]) {
+  if (tid == 0) {
+    #ifdef COOLING_GPU
+    if(dt_array[blockIdx.x] > min_dt[0]) dt_array[blockIdx.x] = min_dt[0];
+    #else
     dt_array[blockIdx.x] = min_dt[0];
+    #endif
   }
 }
 
