@@ -11,9 +11,13 @@ Real *dev_conserved, *dev_conserved_half;
 Real *Q_Lx, *Q_Rx, *Q_Ly, *Q_Ry, *Q_Lz, *Q_Rz, *F_x, *F_y, *F_z;
 Real *eta_x, *eta_y, *eta_z, *etah_x, *etah_y, *etah_z;
 Real *dev_dti_array;
-#if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
+#if defined(COOLING_GPU) || (defined(CONDUCTION_GPU) && !defined(CONDUCTION_STS))
 Real *dev_dt_array;
 #endif
+#ifdef CONDUCTION_STS
+// Array to hold the dts calculated for diffusion
+Real* dev_diff_dt_array;
+#endif /* CONDUCTION_STS */
 Real *host_dti_array;
 #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
 Real *host_dt_array;

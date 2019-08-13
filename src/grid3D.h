@@ -224,6 +224,12 @@ class Grid3D
      *  \brief Buffer to hold conserved variable arrays */
     Real *buffer1;
 
+#ifdef CONDUCTION_STS
+    Real mu[N_STS_MAX + 1]; /*!< STS 2nd order scheme time-indpt coefficients  */
+    Real nu[N_STS_MAX + 1];
+    Real ajm1[N_STS_MAX + 1];
+#endif
+
     struct Conserved
     {
       /*! \var density

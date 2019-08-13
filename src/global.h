@@ -66,6 +66,16 @@ extern float *cooling_table;
 extern float *heating_table;
 #endif
 
+#if defined(CONDUCTION_STS)
+#if !defined(CONDUCTION_GPU)
+#error: STS require explicit diffusion
+#endif /* explicit diffusion */
+#endif
+
+#ifdef CONDUCTION_STS
+#define N_STS_MAX 101 /*!< max number of super timesteps */
+#endif
+
 /*! \fn void Set_Gammas(Real gamma_in)
  *  \brief Set gamma values for Riemann solver. */
 extern void Set_Gammas(Real gamma_in);

@@ -29,10 +29,14 @@ extern Real *dev_conserved, *dev_conserved_half;
 extern Real *Q_Lx, *Q_Rx, *Q_Ly, *Q_Ry, *Q_Lz, *Q_Rz, *F_x, *F_y, *F_z;
 // array of inverse timesteps for dt calculation
 extern Real *dev_dti_array;
-#if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
+#if defined(COOLING_GPU) || (defined(CONDUCTION_GPU) && !defined(CONDUCTION_STS))
 // array of timesteps for dt calculation (cooling restriction)
 extern Real *dev_dt_array;
-#endif  
+#endif
+#ifdef CONDUCTION_STS
+// Array to hold the dts calculated for diffusion
+extern Real* dev_diff_dt_array;
+#endif /* CONDUCTION_STS */
 // Array on the CPU to hold max_dti returned from each thread block
 extern Real *host_dti_array;
 #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
@@ -47,7 +51,7 @@ extern Real *tmp2;
 // Array on the gpu to hold heat fluxes
 #ifdef CONDUCTION_GPU
 extern Real *dev_flux_array;
-#endif
+#endif /* CONDUCTION_GPU */
 
 // Similarly, sizes of subgrid blocks and kernel dimensions are global variables
 // so subgrid splitting function is only called once
