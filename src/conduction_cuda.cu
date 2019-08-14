@@ -9,6 +9,7 @@
 #include"global.h"
 #include"global_cuda.h"
 #include"conduction_cuda.h"
+#include"integrate_diffusion_cuda.cuh"
 
 /*! \fn void calculate_temp_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, 
                                       int n_ghost, int n_fields, Real gamma)
@@ -58,7 +59,7 @@
 /*! \fn void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, 
                                       int n_ghost, int n_fields, Real dt, Real dx, Real dy, Real dz, Real gamma)
  *  \brief Calculates the heat flux for the cells in the grid. */
-__global__ void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real dx, Real dy, Real dz, Real gamma) {
+__global__ void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real gamma) {
 
   // Calculate the grid properties
   int n_cells = nx * ny * nz;
@@ -152,6 +153,9 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
   int xid = id - zid*nx*ny - yid*nx;
   int tid = threadIdx.x;
 
+  // Should the current cell apply the fluxes
+  bool validCell = xid >= i_start && yid >= j_start && zid >= k_start && xid < i_end && yid < j_end && zid < k_end;
+
   // Find adjacent cell ids (Opposite side of what was found in previous kernel)
   int left_id   = (xid - 1) + yid*nx + zid*nx*ny;
   int back_id   = xid + (yid - 1)*nx + zid*nx*ny;
@@ -160,9 +164,6 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
   // set min dt to a high number
   min_dt[tid] = 1e10;
   __syncthreads();
-
-  // Should the current cell apply the fluxes
-  bool validCell = xid >= i_start && yid >= j_start && zid >= k_start && xid < i_end && yid < j_end && zid < k_end;
 
   if(validCell) {
     // X
@@ -210,6 +211,184 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
     #else
     dt_array[blockIdx.x] = min_dt[0];
     #endif
+  }
+}
+
+#ifdef CONDUCTION_STS
+/*! \fn void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, 
+                                      int n_ghost, Real dt, Real dx, Real dy, Real dz, Real *dt_array)
+ *  \brief Apply the heat fluxes calculated in the previous kernel.  */
+ __global__ void apply_heat_fluxes_STS_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, Real dt, Real dx, Real dy, Real dz, int j_STS, Real w1) {
+
+    // Calculate grid properties
+    int n_cells = nx * ny * nz;
+    int i_start, i_end, j_start, j_end, k_start, k_end;
+    i_start = n_ghost;
+    i_end = nx - n_ghost;
+    if (ny == 1) {
+      j_start = 0;
+      j_end = 1;
+    } else {
+      j_start = n_ghost;
+      j_end = ny-n_ghost;
+    }
+    if (nz == 1) {
+      k_start = 0;
+      k_end = 1;
+    } else {
+      k_start = n_ghost;
+      k_end = nz-n_ghost;
+    }
+  
+    // Calculate cell properties
+    int blockId = blockIdx.x + blockIdx.y*gridDim.x;
+    int id = threadIdx.x + blockId * blockDim.x;
+    int zid = id / (nx*ny);
+    int yid = (id - zid*nx*ny) / nx;
+    int xid = id - zid*nx*ny - yid*nx;
+  
+    // Should the current cell apply the fluxes
+    bool validCell = xid >= i_start && yid >= j_start && zid >= k_start && xid < i_end && yid < j_end && zid < k_end;
+  
+    // Find adjacent cell ids (Opposite side of what was found in previous kernel)
+    int left_id   = (xid - 1) + yid*nx + zid*nx*ny;
+    int back_id   = xid + (yid - 1)*nx + zid*nx*ny;
+    int down_id   = xid + yid*nx + (zid - 1)*nx*ny;
+  
+    // Initialize the init values for the stage and do first step
+    if(j_STS == 1 && validCell) {
+      Real mu_tilde = (1.0/3.0) * w1;
+  
+      Y0[id] = dev_conserved[4*n_cells + id]; // Energy
+      Real Lclass0Sum = 0.0;
+      Real kappaT = kappa(dev_flux_array[id]);
+      // X
+      Real right_flux = dev_flux_array[n_cells + id];               // The previous kernel stored the right boundary flux at the current id
+      Real left_flux = dev_flux_array[n_cells + left_id];
+      Lclass0Sum += kappaT * (right_flux - left_flux) * (1.0/dx);
+  
+      // Y
+      if(ny > 1) {
+        Real front_flux = dev_flux_array[2*n_cells + id];
+        Real back_flux = dev_flux_array[2*n_cells + back_id];
+        Lclass0Sum += kappaT * (front_flux - back_flux) * (1.0/dy);
+      }
+  
+      // Z
+      if(nz > 1) {
+        Real up_flux = dev_flux_array[3*n_cells + id];
+        Real down_flux = dev_flux_array[3*n_cells + down_id];
+        Lclass0Sum += kappaT * (up_flux - down_flux) * (1.0/dz);
+      }
+  
+      Lclass0[id] = Lclass0Sum;
+      dev_conserved[4*n_cells + id] += mu_tilde*dt*Lclass0[id];
+      Yjm2[id] = Y0[id];
+    }
+    // All other steps than the first
+    else if(validCell) {
+      Real muR = mu[j_STS];
+      Real nuR = nu[j_STS];
+      Real mu_tilde = muR*w1;
+      Real gamma_tilde = ajm1[j_STS]*mu_tilde;
+      Real Yjm2_cell = dev_conserved[4*n_cells + id];
+      Real kappaT = kappa(dev_flux_array[id]);
+      Real LclassSum = 0;
+  
+      // X
+      Real right_flux = dev_flux_array[n_cells + id];               // The previous kernel stored the right boundary flux at the current id
+      Real left_flux = dev_flux_array[n_cells + left_id];
+      LclassSum += kappaT * (right_flux - left_flux) * (1.0/dx);
+  
+      // Y
+      if(ny > 1) {
+        Real front_flux = dev_flux_array[2*n_cells + id];
+        Real back_flux = dev_flux_array[2*n_cells + back_id];
+        LclassSum += kappaT * (front_flux - back_flux) * (1.0/dy);
+      }
+  
+      // Z
+      if(nz > 1) {
+        Real up_flux = dev_flux_array[3*n_cells + id];
+        Real down_flux = dev_flux_array[3*n_cells + down_id];
+        LclassSum += kappaT * (up_flux - down_flux) * (1.0/dz);
+      }
+      
+      dev_conserved[4*n_cells + id] = muR * dev_conserved[4*n_cells + id]
+              + nuR * Yjm2[id]
+              + (1.0 - muR - nuR) * Y0[id]
+              + mu_tilde * dt * LclassSum
+              + gamma_tilde * dt * Lclass0[id];
+      Yjm2[id] = Yjm2_cell;
+    }
+  }
+  #endif /* CONDUCTION_STS */
+
+/*! \fn void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, 
+                                      int n_ghost, Real dt, Real dx, Real dy, Real dz, Real *dt_array)
+ *  \brief Apply the heat fluxes calculated in the previous kernel.  */
+ __global__ void Calc_diff_dti_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, Real dt, Real dx, Real dy, Real dz, Real *dt_array) {
+
+  __shared__ Real min_dt[TPB];
+
+  // Calculate grid properties
+  int n_cells = nx * ny * nz;
+  int i_start, i_end, j_start, j_end, k_start, k_end;
+  i_start = n_ghost;
+  i_end = nx - n_ghost;
+  if (ny == 1) {
+    j_start = 0;
+    j_end = 1;
+  } else {
+    j_start = n_ghost;
+    j_end = ny-n_ghost;
+  }
+  if (nz == 1) {
+    k_start = 0;
+    k_end = 1;
+  } else {
+    k_start = n_ghost;
+    k_end = nz-n_ghost;
+  }
+
+  // Calculate cell properties
+  int blockId = blockIdx.x + blockIdx.y*gridDim.x;
+  int id = threadIdx.x + blockId * blockDim.x;
+  int zid = id / (nx*ny);
+  int yid = (id - zid*nx*ny) / nx;
+  int xid = id - zid*nx*ny - yid*nx;
+  int tid = threadIdx.x;
+
+  // set min dt to a high number
+  min_dt[tid] = 1e10;
+  __syncthreads();
+
+  // Should the current cell apply the fluxes
+  bool validCell = xid >= i_start && yid >= j_start && zid >= k_start && xid < i_end && yid < j_end && zid < k_end;
+
+  if(validCell) {
+    // Check the cell hasn't crashed
+    if (dev_conserved[4*n_cells + id] > 0) {
+      Real qa = dx*dx * dev_conserved[id] / kappa(dev_flux_array[id]);
+      Real min_dt_temp = qa / 4.0;
+      if(ny > 1) min_dt_temp = qa / 8.0;
+      if(nz > 1) min_dt_temp = qa / 6.0;
+      min_dt[tid] = min_dt_temp;
+    }
+  }
+  __syncthreads();
+
+  // do the reduction in shared memory (find the min timestep in the block)
+  for (unsigned int s=1; s<blockDim.x; s*=2) {
+    if (tid % (2*s) == 0) {
+      min_dt[tid] = fmin(min_dt[tid], min_dt[tid + s]);
+    }
+    __syncthreads();
+  }
+
+  // write the result for this block to global memory
+  if (tid == 0) {
+    dt_array[blockIdx.x] = min_dt[0];
   }
 }
 

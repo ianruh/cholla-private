@@ -25,8 +25,8 @@ ifdef MPI_FLAGS
   CC	= mpicc
   CXX   = mpicxx
 
-  #MPI_FLAGS += -DSLAB
-  MPI_FLAGS += -DBLOCK
+  MPI_FLAGS += -DSLAB
+#   MPI_FLAGS += -DBLOCK
 
 else
   CC	= gcc
@@ -57,24 +57,18 @@ SOLVER = -DHLLC
 #INTEGRATOR = -DCTU
 INTEGRATOR = -DVL
 
-<<<<<<< HEAD
-COOLING = -DCOOLING_GPU # -DCLOUDY_COOL
+COOLING = -DCOOLING_GPU #-DCLOUDY_COOL
 
-#CONDUCTION = -DCONDUCTION_GPU
+CONDUCTION = -DCONDUCTION_GPU
 
 #ifdef CUDA
 #CUDA_INCL = -I/usr/local/cuda/include
 #CUDA_LIBS = -L/usr/local/cuda/lib64 -lcuda -lcudart
 #endif
-=======
-COOLING = -DCOOLING_GPU #-DCLOUDY_COOL
-
-CONDUCTION = #-DCONDUCTION_GPU
->>>>>>> d749910a6ef3574f4ff7454422dc2b75d6230dc5
 
 ifdef CUDA
-CUDA_INCLUDE = -I/opt/cudatoolkit/9.0/include/
-CUDA_LIBS = -L/opt/cudatoolkit/9.0/lib64 -lcuda -lcudart
+CUDA_INCLUDE = -I/opt/cudatoolkit/10.1/include/
+CUDA_LIBS = -L/opt/cudatoolkit/10.1/lib64 -lcuda -lcudart
 endif
 
 #ifeq ($(OUTPUT),-DHDF5)
@@ -83,8 +77,8 @@ endif
 #endif
 
 ifeq ($(OUTPUT),-DHDF5)
-HDF5_INCL = -I/usr/projects/hpcsoft/toss3/kodiak/hdf5/1.8.16_intel-17.0.4_intel-mpi-2017.1/include
-HDF5_LIBS = -L/usr/projects/hpcsoft/toss3/kodiak/hdf5/1.8.16_intel-17.0.4_openmpi-2.1.2/lib -lhdf5
+HDF5_INCL = -I/usr/projects/hpcsoft/toss3/kodiak/hdf5/1.8.16_intel-18.0.5_intel-mpi-2018.4/include
+HDF5_LIBS = -L/usr/projects/hpcsoft/toss3/kodiak/hdf5/1.8.16_intel-18.0.5_openmpi-2.1.2/lib -lhdf5
 endif
 
 INCL   = -I./ $(HDF5_INCL)
@@ -95,11 +89,7 @@ LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)
 FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) $(CONDUCTION) # -DROTATED_PROJECTION #-DSTATIC_GRAV #-DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
-<<<<<<< HEAD
-NVCCFLAGS = $(FLAGS) -fmad=false -ccbin=$(CC) -arch=sm_60 -g -G
-=======
 NVCCFLAGS = $(FLAGS) -fmad=false -arch=sm_60
->>>>>>> d749910a6ef3574f4ff7454422dc2b75d6230dc5
 
 
 %.o:	%.c

@@ -97,7 +97,7 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     CudaSafeCall( cudaMalloc((void**)&F_x,  n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&F_y,  n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
-    #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
+    #if defined(COOLING_GPU) || (defined(CONDUCTION_GPU) && !defined(CONDUCTION_STS))
     CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
     #endif
     #ifdef CONDUCTION_GPU
@@ -210,14 +210,14 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
     // Thermal Conduction
     #ifdef CONDUCTION_GPU
-    calculate_temp_kernel<<<dim2dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, n_fields, gama);
-    CudaCheckError();
-    cudaDeviceSynchronize();
-    calculate_heat_flux_kernel<<<dim2dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, dx, dy, 1, gama);
-    CudaCheckError();
-    cudaDeviceSynchronize();
-    apply_heat_fluxes_kernel<<<dim2dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, dt, dx, dy, 1, dev_dt_array);
-    CudaCheckError();
+    // calculate_temp_kernel<<<dim2dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, n_fields, gama);
+    // CudaCheckError();
+    // cudaDeviceSynchronize();
+    // calculate_heat_flux_kernel<<<dim2dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, n_fields, dx, dy, 1, gama);
+    // CudaCheckError();
+    // cudaDeviceSynchronize();
+    // apply_heat_fluxes_kernel<<<dim2dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, dt, dx, dy, 1, dev_dt_array);
+    // CudaCheckError();
     #endif
 
 
@@ -254,7 +254,7 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     for (int i=0; i<ngrid; i++) {
       max_dti = fmax(max_dti, host_dti_array[i]);
     }
-    #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
+    #if defined(COOLING_GPU) || (defined(CONDUCTION_GPU) && !defined(CONDUCTION_STS))
     // copy the dt array from cooling onto the CPU
     CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
     // iterate through to find the minimum dt for this subgrid block
@@ -302,7 +302,7 @@ void Free_Memory_VL_2D() {
   cudaFree(F_x);
   cudaFree(F_y);
   cudaFree(dev_dti_array);
-  #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
+  #if defined(COOLING_GPU) || (defined(CONDUCTION_GPU) && !defined(CONDUCTION_STS))
   cudaFree(dev_dt_array);
   #endif
   #ifdef CONDUCTION_GPU

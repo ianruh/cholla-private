@@ -17,12 +17,16 @@
 /*! \fn void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, 
                                       int n_ghost, int n_fields, Real dt, Real dx, Real dy, Real dz, Real gamma, Real kappa)
  *  \brief Calculates the heat flux for the cells in the grid. */
-__global__ void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real dx, Real dy, Real dz, Real gamma);
+__global__ void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz, Real gamma);
 
 /*! \fn void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, 
                                       int n_ghost, Real dt, Real dx, Real dy, Real dz)
  *  \brief Apply the heat fluxes calculated in the previous kernel.  */
 __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, Real dt, Real dx, Real dy, Real dz, Real *dt_array);
+
+__global__ void apply_heat_fluxes_STS_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, Real dt, Real dx, Real dy, Real dz, int j_STS, Real w1);
+
+__global__ void Calc_diff_dti_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, Real dt, Real dx, Real dy, Real dz, Real *dt_array);
 
 /*! \fn void calculateTemp(Real *dev_conserved, int id, int n_cells, Real gamma)
  *  \brief Calculate the temperature of the cell with the given id.  */

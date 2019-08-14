@@ -13,6 +13,7 @@
 #include "grid3D.h"
 #include "io.h"
 #include "error_handling.h"
+#include "integrate_diffusion_cuda.h"
 
 #define OUTPUT
 //#define CPU_TIME
@@ -91,6 +92,11 @@ int main(int argc, char *argv[])
   chprintf("Ratio of specific heats gamma = %f\n",gama);
   chprintf("Nstep = %d  Timestep = %f  Simulation time = %f\n", G.H.n_step, G.H.dt, G.H.t);
 
+  #if defined(CONDUCTION_GPU) && defined(CONDUCTION_STS)
+  calc_STS_coeffs(&G);
+  copy_constant_STS_coeffs(&G);
+  allocate_diffusion_memory(G.H.nx, G.H.ny, G.H.nz);
+  #endif /* CONDUCTION */
 
   #ifdef OUTPUT
   if (strcmp(P.init, "Read_Grid") != 0) {

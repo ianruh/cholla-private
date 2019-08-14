@@ -24,6 +24,7 @@
 #include"conduction_cuda.h"
 #include"error_handling.h"
 #include"io.h"
+#include"integrate_diffusion_cuda.h"
 
 
 __global__ void Update_Conserved_Variables_1D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F, 
@@ -40,7 +41,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
   // Initialize dt values
   Real max_dti = 0;
-  #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
+  #if defined(COOLING_GPU) || (defined(CONDUCTION_GPU) && !defined(CONDUCTION_STS))
   Real min_dt = 1e10;
   #endif  
 
@@ -68,9 +69,12 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     CudaSafeCall( cudaMalloc((void**)&Q_Rx, n_fields*n_cells*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&F_x,   n_fields*n_cells*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
-    #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
+    #if defined(COOLING_GPU) || (defined(CONDUCTION_GPU) && !defined(CONDUCTION_STS))
     CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
-    #endif  
+    #endif
+    #ifdef CONDUCTION_STS
+    CudaSafeCall( cudaMalloc((void**)&dev_diff_dt_array, ngrid*sizeof(Real)) );
+    #endif
     #ifdef CONDUCTION_GPU
     CudaSafeCall( cudaMalloc((void**)&dev_flux_array, 2*nx*sizeof(Real)) );
     #endif
@@ -158,12 +162,45 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   CudaCheckError();
   #endif
 
-  // Thermal Conduction
-  #ifdef CONDUCTION_GPU
+  // STS thermal conduction
+  #if defined(CONDUCTION_GPU) && defined(CONDUCTION_STS)
+  // The temperature needs to be calculated before finding the diffusion dts.
   calculate_temp_kernel<<<dimGrid, dimBlock>>>(dev_conserved, dev_flux_array, nx, ny, nz, n_ghost, n_fields, gama);
   CudaCheckError();
   cudaDeviceSynchronize();
-  calculate_heat_flux_kernel<<<dimGrid, dimBlock>>>(dev_conserved, dev_flux_array, nx, ny, nz, n_ghost, n_fields, dt, dx, 1, 1, gama);
+  Calc_diff_dti_kernel<<<dimGrid, dimGrid>>>(dev_conserved, dev_flux_array, nx, ny, nz, n_ghost, dt, dx, 1, 1, dev_diff_dt_array);
+  CudaCheckError();
+  // Copy diffusion dts back (using the host_dt_array, but it will be over written)
+  CudaSafeCall( cudaMemcpy(host_dt_array, dev_diff_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
+  // find minimum dt from the diffusion dts.
+  Real min_diff_dt = 1e10;
+  for (int i=0; i<ngrid; i++) {
+    min_diff_dt = fmin(min_diff_dt, host_dt_array[i]);
+  }
+  int N_STS = get_N_STS(dt, min_diff_dt);
+  printf("N_STS: %i\n", N_STS); //DEBUG
+  Real w1 = 4.0 / (Real)(N_STS*N_STS + N_STS - 2);
+  for(int j = 1; j <= N_STS - 1; j++) {
+
+    // This always runs if conduction is on
+    calculate_temp_kernel<<<dimGrid, dimBlock>>>(dev_conserved, dev_flux_array, nx, ny, nz, n_ghost, n_fields, gama);
+    CudaCheckError();
+    cudaDeviceSynchronize();
+    calculate_heat_flux_kernel<<<dimGrid, dimBlock>>>(dev_conserved, dev_flux_array, nx, ny, nz, n_ghost, n_fields, dx, 1, 1, gama);
+    CudaCheckError();
+    cudaDeviceSynchronize();
+    apply_heat_fluxes_STS_kernel<<<dimGrid, dimBlock>>>(dev_conserved, dev_flux_array, nx, ny, nz, n_ghost, dt, dx, 1, 1, j, w1);
+    CudaCheckError();
+
+  }
+  #endif
+
+  // Non STS thermal conduction
+  #if defined(CONDUCTION_GPU) && !defined(CONDUCTION_STS)
+  calculate_temp_kernel<<<dimGrid, dimBlock>>>(dev_conserved, dev_flux_array, nx, ny, nz, n_ghost, n_fields, gama);
+  CudaCheckError();
+  cudaDeviceSynchronize();
+  calculate_heat_flux_kernel<<<dimGrid, dimBlock>>>(dev_conserved, dev_flux_array, nx, ny, nz, n_ghost, n_fields, dx, 1, 1, gama);
   CudaCheckError();
   cudaDeviceSynchronize();
   apply_heat_fluxes_kernel<<<dimGrid, dimBlock>>>(dev_conserved, dev_flux_array, nx, ny, nz, n_ghost, dt, dx, 1, 1, dev_dt_array);
@@ -185,7 +222,7 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
   for (int i=0; i<ngrid; i++) {
     max_dti = fmax(max_dti, host_dti_array[i]);
   }
-  #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
+  #if defined(COOLING_GPU) || (defined(CONDUCTION_GPU) && !defined(CONDUCTION_STS))
   // copy the dt array from cooling onto the CPU
   CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
   // find maximum inverse timestep from cooling time
@@ -224,7 +261,7 @@ void Free_Memory_VL_1D() {
   cudaFree(Q_Rx);
   cudaFree(F_x);
   cudaFree(dev_dti_array);
-  #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
+  #if defined(COOLING_GPU) || (defined(CONDUCTION_GPU) && !defined(CONDUCTION_STS))
   cudaFree(dev_dt_array);
   #endif
   #ifdef CONDUCTION_GPU
