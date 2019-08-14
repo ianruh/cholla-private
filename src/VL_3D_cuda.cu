@@ -41,7 +41,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
   // Initialize dt values 
   Real max_dti = 0;
-  #ifdef COOLING_GPU
+  #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
   Real min_dt = 1e10;
   #endif  
 
@@ -84,7 +84,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     }
     // allocate an array on the CPU to hold max_dti returned from each thread block
     host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
-    #ifdef COOLING_GPU
+    #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
     host_dt_array = (Real *) malloc(ngrid*sizeof(Real));
     #endif  
 
@@ -101,11 +101,11 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     CudaSafeCall( cudaMalloc((void**)&F_y,   n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&F_z,   n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
-    #ifdef COOLING_GPU
+    #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
     CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
-    #endif 
+    #endif
     #ifdef CONDUCTION_GPU
-    CudaSafeCall( cudaMalloc((void**)&dev_flux_array, 3*nx*ny*nz*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&dev_flux_array, 2*3*nx*ny*nz*sizeof(Real)) );
     #endif
     
     #ifndef DYNAMIC_GPU_ALLOC 
@@ -230,17 +230,16 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
     // Thermal Conduction
     #ifdef CONDUCTION_GPU
-    Real kappa = 1.0;
-    calculate_heat_flux_kernel<<<dim1dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, dx, dy, dz, gama, kappa);
-    cudaError_t err = cudaGetLastError();
-    gpuErrchk(err);
+    calculate_temp_kernel<<<dim1dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, n_fields, gama);
     CudaCheckError();
     cudaDeviceSynchronize();
-    apply_heat_fluxes_kernel<<<dim1dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, dt, dx, dy, dz);
-    err = cudaGetLastError();
-    gpuErrchk(err);
+    calculate_heat_flux_kernel<<<dim1dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, dx, dy, dz, gama);
+    CudaCheckError();
+    cudaDeviceSynchronize();
+    apply_heat_fluxes_kernel<<<dim1dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, dt, dx, dy, dz, dev_dt_array);
     CudaCheckError();
     #endif
+
  
     // Step 7: Calculate the next time step
     Calc_dt_3D<<<dim1dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, nz_s, n_ghost, dx, dy, dz, dev_dti_array, gama);
@@ -258,7 +257,7 @@ Real VL_Algorithm_3D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     for (int i=0; i<ngrid; i++) {
       max_dti = fmax(max_dti, host_dti_array[i]);
     }
-    #ifdef COOLING_GPU
+    #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
     // copy the dt array from cooling onto the CPU
     CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
     // find maximum inverse timestep from cooling time
@@ -293,7 +292,7 @@ void Free_Memory_VL_3D(){
   // free CPU memory
   if (block_tot > 1) free(buffer);
   free(host_dti_array);  
-  #ifdef COOLING_GPU
+  #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
   free(host_dt_array);  
   #endif  
   
@@ -310,8 +309,11 @@ void Free_Memory_VL_3D(){
   cudaFree(F_y);
   cudaFree(F_z);
   cudaFree(dev_dti_array);
-  #ifdef COOLING_GPU
+  #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
   cudaFree(dev_dt_array);
+  #endif
+  #ifdef CONDUCTION_GPU
+  cudaFree(dev_flux_array);
   #endif
 
 }

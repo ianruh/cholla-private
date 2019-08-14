@@ -41,7 +41,7 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
   // Initialize dt values
   Real max_dti = 0;
-  #ifdef COOLING_GPU
+  #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
   Real min_dt = 1e10;
   #endif
 
@@ -53,15 +53,15 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     block_tot = block1_tot*block2_tot;
     // number of cells in one subgrid block
     BLOCK_VOL = nx_s*ny_s*nz_s;
-    // dimensions for the 2D GPU grid
-    ngrid = (BLOCK_VOL + 2*TPB - 1) / (2*TPB);
+    // dimensions for the 1D GPU grid
+    ngrid = (BLOCK_VOL + TPB - 1) / (TPB);
     #ifndef DYNAMIC_GPU_ALLOC
     block_size = true;
     #endif
   }
   // set values for GPU kernels
-  // number of blocks per 2D grid  
-  dim3 dim2dGrid(ngrid, 2, 1);
+  // number of blocks per 1D grid  
+  dim3 dim2dGrid(ngrid, 1, 1);
   //number of threads per 1D block   
   dim3 dim1dBlock(TPB, 1, 1);
 
@@ -82,9 +82,9 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
       tmp2 = buffer;
     }
     // allocate an array on the CPU to hold max_dti returned from each thread block
-    host_dti_array = (Real *) malloc(2*ngrid*sizeof(Real));
-    #ifdef COOLING_GPU
-    host_dt_array = (Real *) malloc(2*ngrid*sizeof(Real));
+    host_dti_array = (Real *) malloc(ngrid*sizeof(Real));
+    #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
+    host_dt_array = (Real *) malloc(ngrid*sizeof(Real));
     #endif  
 
     // allocate GPU arrays
@@ -96,13 +96,13 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     CudaSafeCall( cudaMalloc((void**)&Q_Ry, n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&F_x,  n_fields*BLOCK_VOL*sizeof(Real)) );
     CudaSafeCall( cudaMalloc((void**)&F_y,  n_fields*BLOCK_VOL*sizeof(Real)) );
-    CudaSafeCall( cudaMalloc((void**)&dev_dti_array, 2*ngrid*sizeof(Real)) );
-    #ifdef COOLING_GPU
-    CudaSafeCall( cudaMalloc((void**)&dev_dt_array, 2*ngrid*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&dev_dti_array, ngrid*sizeof(Real)) );
+    #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
+    CudaSafeCall( cudaMalloc((void**)&dev_dt_array, ngrid*sizeof(Real)) );
     #endif
     #ifdef CONDUCTION_GPU
-    CudaSafeCall( cudaMalloc((void**)&dev_flux_array, 2*nx*ny*sizeof(Real)) );
-    #endif  
+    CudaSafeCall( cudaMalloc((void**)&dev_flux_array, 2*2*nx*ny*sizeof(Real)) );
+    #endif
 
     #ifndef DYNAMIC_GPU_ALLOC 
     // If memory is single allocated: memory_allocated becomes true and succesive timesteps won't allocate memory.
@@ -208,6 +208,18 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     CudaCheckError();
     #endif
 
+    // Thermal Conduction
+    #ifdef CONDUCTION_GPU
+    calculate_temp_kernel<<<dim2dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, n_fields, gama);
+    CudaCheckError();
+    cudaDeviceSynchronize();
+    calculate_heat_flux_kernel<<<dim2dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, dx, dy, 1, gama);
+    CudaCheckError();
+    cudaDeviceSynchronize();
+    apply_heat_fluxes_kernel<<<dim2dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, dt, dx, dy, 1, dev_dt_array);
+    CudaCheckError();
+    #endif
+
 
     // Thermal Conduction
     #ifdef CONDUCTION_GPU
@@ -237,16 +249,16 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
 
 
     // copy the dti array onto the CPU
-    CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, 2*ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
+    CudaSafeCall( cudaMemcpy(host_dti_array, dev_dti_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
     // iterate through to find the maximum inverse dt for this subgrid block
-    for (int i=0; i<2*ngrid; i++) {
+    for (int i=0; i<ngrid; i++) {
       max_dti = fmax(max_dti, host_dti_array[i]);
     }
-    #ifdef COOLING_GPU
+    #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
     // copy the dt array from cooling onto the CPU
-    CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, 2*ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
+    CudaSafeCall( cudaMemcpy(host_dt_array, dev_dt_array, ngrid*sizeof(Real), cudaMemcpyDeviceToHost) );
     // iterate through to find the minimum dt for this subgrid block
-    for (int i=0; i<2*ngrid; i++) {
+    for (int i=0; i<ngrid; i++) {
       min_dt = fmin(min_dt, host_dt_array[i]);
     }  
     if (min_dt < C_cfl/max_dti) {
@@ -276,7 +288,7 @@ void Free_Memory_VL_2D() {
   // free the CPU memory
   if (block_tot > 1) free(buffer);
   free(host_dti_array);
-  #ifdef COOLING_GPU
+  #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
   free(host_dt_array);  
   #endif  
 
@@ -290,8 +302,11 @@ void Free_Memory_VL_2D() {
   cudaFree(F_x);
   cudaFree(F_y);
   cudaFree(dev_dti_array);
-  #ifdef COOLING_GPU
+  #if defined(COOLING_GPU) || defined(CONDUCTION_GPU)
   cudaFree(dev_dt_array);
+  #endif
+  #ifdef CONDUCTION_GPU
+  cudaFree(dev_flux_array);
   #endif
 
 }
