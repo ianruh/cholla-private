@@ -24,7 +24,7 @@ __global__ void calculate_heat_flux_kernel(Real *dev_conserved, Real *dev_flux_a
  *  \brief Apply the heat fluxes calculated in the previous kernel.  */
 __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, Real dt, Real dx, Real dy, Real dz, Real *dt_array);
 
-__global__ void apply_heat_fluxes_STS_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, Real dt, Real dx, Real dy, Real dz, int j_STS, Real w1);
+__global__ void apply_heat_fluxes_STS_kernel(Real *dev_conserved, Real *dev_flux_array, Real *Y0, Real *Lclass0, Real *Yjm2, int nx, int ny, int nz, int n_ghost, Real dt, Real dx, Real dy, Real dz, int j_STS, Real w1);
 
 __global__ void Calc_diff_dti_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, Real dt, Real dx, Real dy, Real dz, Real *dt_array);
 

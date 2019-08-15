@@ -15,7 +15,7 @@ CUOBJS   = $(subst .cu,.o,$(CUDAFILES))
 
 #To use GPUs, CUDA must be turned on here
 #Optional error checking can also be enabled
-CUDA = -DCUDA #-DCUDA_ERROR_CHECK
+CUDA = -DCUDA -DCUDA_ERROR_CHECK
 
 #To use MPI, MPI_FLAGS must be set to -DMPI_CHOLLA
 #otherwise gcc/g++ will be used for serial compilation
@@ -57,9 +57,9 @@ SOLVER = -DHLLC
 #INTEGRATOR = -DCTU
 INTEGRATOR = -DVL
 
-COOLING = -DCOOLING_GPU #-DCLOUDY_COOL
+COOLING = #-DCOOLING_GPU #-DCLOUDY_COOL
 
-CONDUCTION = -DCONDUCTION_GPU
+CONDUCTION = -DCONDUCTION_GPU -DCONDUCTION_STS
 
 #ifdef CUDA
 #CUDA_INCL = -I/usr/local/cuda/include
@@ -89,7 +89,7 @@ LIBS   = -lm $(HDF5_LIBS) $(CUDA_LIBS)
 FLAGS = $(CUDA) $(PRECISION) $(OUTPUT) $(RECONSTRUCTION) $(SOLVER) $(INTEGRATOR) $(COOLING) $(CONDUCTION) # -DROTATED_PROJECTION #-DSTATIC_GRAV #-DDE -DSCALAR -DSLICES -DPROJECTION -DROTATED_PROJECTION
 CFLAGS 	  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
 CXXFLAGS  = $(OPTIMIZE) $(FLAGS) $(MPI_FLAGS)
-NVCCFLAGS = $(FLAGS) -fmad=false -arch=sm_60
+NVCCFLAGS = $(FLAGS) -fmad=false -arch=sm_60 -g -G
 
 
 %.o:	%.c

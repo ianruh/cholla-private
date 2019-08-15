@@ -221,21 +221,6 @@ Real VL_Algorithm_2D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     #endif
 
 
-    // Thermal Conduction
-    #ifdef CONDUCTION_GPU
-    Real kappa = 0.0001;
-    calculate_heat_flux_kernel<<<dim2dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, n_fields, dt, dx, dy, 1, gama, kappa);
-    cudaError_t err = cudaGetLastError();
-    gpuErrchk(err);
-    CudaCheckError();
-    cudaDeviceSynchronize();
-    apply_heat_fluxes_kernel<<<dim2dGrid, dim1dBlock>>>(dev_conserved, dev_flux_array, nx_s, ny_s, nz_s, n_ghost, dt, dx, dy, 1);
-    err = cudaGetLastError();
-    gpuErrchk(err);
-    CudaCheckError();
-    #endif
-
-
     // Step 7: Calculate the next timestep
     Calc_dt_2D<<<dim2dGrid,dim1dBlock>>>(dev_conserved, nx_s, ny_s, n_ghost, dx, dy, dev_dti_array, gama);
     CudaCheckError();  

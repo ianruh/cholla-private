@@ -24,6 +24,7 @@
 #include"conduction_cuda.h"
 #include"error_handling.h"
 #include"io.h"
+#include"integrate_diffusion_cuda.cuh"
 #include"integrate_diffusion_cuda.h"
 
 
@@ -74,6 +75,9 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     #endif
     #ifdef CONDUCTION_STS
     CudaSafeCall( cudaMalloc((void**)&dev_diff_dt_array, ngrid*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&Y0, n_cells*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&Lclass0, n_cells*sizeof(Real)) );
+    CudaSafeCall( cudaMalloc((void**)&Yjm2, n_cells*sizeof(Real)) );
     #endif
     #ifdef CONDUCTION_GPU
     CudaSafeCall( cudaMalloc((void**)&dev_flux_array, 2*nx*sizeof(Real)) );
@@ -178,9 +182,9 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     min_diff_dt = fmin(min_diff_dt, host_dt_array[i]);
   }
   int N_STS = get_N_STS(dt, min_diff_dt);
-  printf("N_STS: %i\n", N_STS); //DEBUG
+  printf("diff_dt: %f, N_STS: %i\n", min_diff_dt, N_STS); //DEBUG
   Real w1 = 4.0 / (Real)(N_STS*N_STS + N_STS - 2);
-  for(int j = 1; j <= N_STS - 1; j++) {
+  for(int j = 1; j <= N_STS; j++) {
 
     // This always runs if conduction is on
     calculate_temp_kernel<<<dimGrid, dimBlock>>>(dev_conserved, dev_flux_array, nx, ny, nz, n_ghost, n_fields, gama);
@@ -189,9 +193,9 @@ Real VL_Algorithm_1D_CUDA(Real *host_conserved0, Real *host_conserved1, int nx, 
     calculate_heat_flux_kernel<<<dimGrid, dimBlock>>>(dev_conserved, dev_flux_array, nx, ny, nz, n_ghost, n_fields, dx, 1, 1, gama);
     CudaCheckError();
     cudaDeviceSynchronize();
-    apply_heat_fluxes_STS_kernel<<<dimGrid, dimBlock>>>(dev_conserved, dev_flux_array, nx, ny, nz, n_ghost, dt, dx, 1, 1, j, w1);
+    apply_heat_fluxes_STS_kernel<<<dimGrid, dimBlock>>>(dev_conserved, dev_flux_array, Y0, Lclass0, Yjm2, nx, ny, nz, n_ghost, dt, dx, 1, 1, j, w1);
     CudaCheckError();
-
+    cudaDeviceSynchronize();
   }
   #endif
 

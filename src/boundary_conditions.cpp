@@ -455,7 +455,7 @@ void Grid3D::Zero_Bound()
   int i, j, k, id;
   Real vx, vy, vz, P;
 
-  Real d = 1.1;
+  Real d = 1.0;
   Real E = 1.0 / (gama-1.0);
 
   // set exact boundaries on the +x face

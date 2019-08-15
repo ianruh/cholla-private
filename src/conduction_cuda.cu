@@ -49,7 +49,7 @@
   int up_id     = xid + yid*nx + (zid + 1)*nx*ny;
 
   // Determine if the current cell should find the boundary fluxes
-  bool validCell = xid >= i_start - 1 && yid >= j_start - 1 && zid >= k_start - 1 && xid <= i_end && yid <= j_end && zid <= k_end;
+  bool validCell = xid >= i_start - 1 && yid >= j_start - 1 && zid >= k_start - 1 && xid < i_end && yid < j_end && zid < k_end;
 
   if(validCell) {
     dev_flux_array[id] = calculateTemp(dev_conserved, id, n_cells, gamma);
@@ -218,7 +218,7 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
 /*! \fn void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, 
                                       int n_ghost, Real dt, Real dx, Real dy, Real dz, Real *dt_array)
  *  \brief Apply the heat fluxes calculated in the previous kernel.  */
- __global__ void apply_heat_fluxes_STS_kernel(Real *dev_conserved, Real *dev_flux_array, int nx, int ny, int nz, int n_ghost, Real dt, Real dx, Real dy, Real dz, int j_STS, Real w1) {
+ __global__ void apply_heat_fluxes_STS_kernel(Real *dev_conserved, Real *dev_flux_array, Real *Y0, Real *Lclass0, Real *Yjm2, int nx, int ny, int nz, int n_ghost, Real dt, Real dx, Real dy, Real dz, int j_STS, Real w1) {
 
     // Calculate grid properties
     int n_cells = nx * ny * nz;
@@ -257,8 +257,8 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
   
     // Initialize the init values for the stage and do first step
     if(j_STS == 1 && validCell) {
-      Real mu_tilde = (1.0/3.0) * w1;
-  
+      Real mu_tilde = w1 / 3.0;
+
       Y0[id] = dev_conserved[4*n_cells + id]; // Energy
       Real Lclass0Sum = 0.0;
       Real kappaT = kappa(dev_flux_array[id]);
@@ -282,7 +282,7 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
       }
   
       Lclass0[id] = Lclass0Sum;
-      dev_conserved[4*n_cells + id] += mu_tilde*dt*Lclass0[id];
+      dev_conserved[4*n_cells + id] += mu_tilde*dt*Lclass0Sum;
       Yjm2[id] = Y0[id];
     }
     // All other steps than the first
@@ -290,7 +290,7 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
       Real muR = mu[j_STS];
       Real nuR = nu[j_STS];
       Real mu_tilde = muR*w1;
-      Real gamma_tilde = ajm1[j_STS]*mu_tilde;
+      Real gamma_tilde = -1*ajm1[j_STS]*mu_tilde;
       Real Yjm2_cell = dev_conserved[4*n_cells + id];
       Real kappaT = kappa(dev_flux_array[id]);
       Real LclassSum = 0;
@@ -314,6 +314,8 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
         LclassSum += kappaT * (up_flux - down_flux) * (1.0/dz);
       }
       
+      printf("E = %f * %f\n    + %f * %f\n    + (1.0 - %f - %f) * %f\n    + %f * %f * %f\n    + %f * %f * %f\n", muR, dev_conserved[4*n_cells + id], nuR, Yjm2[id], muR, nuR, Y0[id], mu_tilde, dt, LclassSum, gamma_tilde, dt, Lclass0);
+      
       dev_conserved[4*n_cells + id] = muR * dev_conserved[4*n_cells + id]
               + nuR * Yjm2[id]
               + (1.0 - muR - nuR) * Y0[id]
@@ -321,6 +323,7 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
               + gamma_tilde * dt * Lclass0[id];
       Yjm2[id] = Yjm2_cell;
     }
+    // printf("j_STS: %i, E: %f, nx: %i\n", j_STS, dev_conserved[4*n_cells + id], xid);
   }
   #endif /* CONDUCTION_STS */
 
@@ -368,11 +371,13 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
 
   if(validCell) {
     // Check the cell hasn't crashed
+    printf("Test");
     if (dev_conserved[4*n_cells + id] > 0) {
       Real qa = dx*dx * dev_conserved[id] / kappa(dev_flux_array[id]);
       Real min_dt_temp = qa / 4.0;
       if(ny > 1) min_dt_temp = qa / 8.0;
       if(nz > 1) min_dt_temp = qa / 6.0;
+      printf("min_dt_temp: %f\n", min_dt_temp);
       min_dt[tid] = min_dt_temp;
     }
   }
@@ -388,6 +393,7 @@ __global__ void apply_heat_fluxes_kernel(Real *dev_conserved, Real *dev_flux_arr
 
   // write the result for this block to global memory
   if (tid == 0) {
+    printf("min_dt: %f\n", min_dt[0]);
     dt_array[blockIdx.x] = min_dt[0];
   }
 }

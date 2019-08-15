@@ -95,7 +95,6 @@ int main(int argc, char *argv[])
   #if defined(CONDUCTION_GPU) && defined(CONDUCTION_STS)
   calc_STS_coeffs(&G);
   copy_constant_STS_coeffs(&G);
-  allocate_diffusion_memory(G.H.nx, G.H.ny, G.H.nz);
   #endif /* CONDUCTION */
 
   #ifdef OUTPUT

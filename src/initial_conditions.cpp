@@ -171,13 +171,13 @@ void Grid3D::Diff_Test() {
         // C.Energy[id]     = 1.0/(gama-1.0) + 0.5*5.0*0.0;
 
         if (x_pos < 0.05 || x_pos > 0.95) {
-          C.density[id]    = 1.1;
+          C.density[id]    = 1.0;
           C.momentum_x[id] = 0.0;
           C.momentum_y[id] = 0.0;
           C.momentum_z[id] = 0.0;
           C.Energy[id]     = 1.0/(gama-1.0) + 0.5*5.0*0.0;
         } else {
-          C.density[id]    = 1.0;
+          C.density[id]    = 1.1;
           C.momentum_x[id] = 0.0;
           C.momentum_y[id] = 0.0;
           C.momentum_z[id] = 0.0;
