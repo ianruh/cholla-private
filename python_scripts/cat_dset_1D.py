@@ -12,7 +12,7 @@ if(len(sys.argv) != 4):
 
 ns = 0
 n_proc = int(sys.argv[1]) # number of processors that did the calculations
-ne = int((len([fil for fil in os.listdir(sys.argv[2])) if fil[-2] == ".1" or fil[-2] == ".2" or fil[-2] == ".3" or fil[-2] == ".4"] - 1) / n_proc)
+ne = int((len(os.listdir(sys.argv[2])) - 1) / n_proc)
 istart = 0*n_proc
 iend = 1*n_proc
 dnamein = sys.argv[2]
